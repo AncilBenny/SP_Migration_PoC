@@ -1,24 +1,44 @@
-# Phase 1 — SharePoint page migration research
+# SharePoint page migration — research index
 
-Date: 2026-10-28. Status: initial desk research and draft architecture; no tenant export or authenticated page scraping yet.
+Date: 2026-10-28. Current scope: Phase 1/2 desk research and an **offline classifier spike**, not a production extractor. No authorized tenant export or live CDPH DOM/CSS inspection yet.
 
-## Study map
+## Research chapters
 
-1. [SharePoint page models and extraction surfaces](01-sharepoint-page-models.md) — modern vs classic, APIs, fields, web parts and limitations.
-2. [CDPH public case study](02-cdph-public-site-observations.md) — observed search-indexed archetypes, SharePoint evidence and explicit direct-fetch limitations.
-3. [Stylesheet/layout generalization](03-styles-layout-normalization.md) — separating content, structure, design tokens and behavior.
-4. [Research backlog and test matrix](04-research-backlog-and-test-matrix.md) — how to test against real samples and declare readiness.
-5. [Canonical Intermediate Representation decision](../architecture/01-canonical-intermediate-representation.md) — proposed portable contract and fidelity rules.
-6. [Draft JSON Schema](../../schema/page.ir.schema.json) and [synthetic example](../../examples/page.ir.example.json).
+1. [SharePoint page models and extraction](01-sharepoint-page-models.md): Modern vs classic, available APIs, fields, parts and known limits.
+2. [CDPH public case study](02-cdph-public-site-observations.md): search-indexed public page archetypes and evidence limitations.
+3. [Stylesheets, layout and generalization](03-styles-layout-normalization.md): content vs structure vs design tokens vs behavior.
+4. [Research backlog and test matrix](04-research-backlog-and-test-matrix.md): scope, evidence and acceptance criteria.
+5. [Separate source adapter research](05-adapter-research-matrix.md): modern Graph, classic Wiki/Web Part/Publishing, on-prem and HTML fallback.
+6. [Semantic component and dynamic-data study](06-components-and-dynamic-data.md): preliminary webpart->CIR mappings, custom and live dependencies.
+7. [Repeatable layout/CSS capture protocol](07-style-and-layout-capture-protocol.md): site shell, style tokens, viewports and evidence capture.
+8. [Next research experiments](08-next-research-experiments.md): real-sample collection requirements and go/no-go criteria.
 
-## Central hypothesis
+## Architecture artifacts
 
-**Input adapters → audited capture → semantic normalization → portable CIR → independent renderers.** Different SharePoint models should map into the same conceptual blocks without losing source provenance, ordering or unsupported-part information.
+- [ADR 001 — Canonical Intermediate Representation](../architecture/01-canonical-intermediate-representation.md)
+- [ADR 002 — Classification and secure capture contract](../architecture/02-classification-and-capture-contract.md)
+- [Draft JSON Schema](../../schema/page.ir.schema.json) and [synthetic CIR example](../../examples/page.ir.example.json)
+- [Offline classifier spike](../../research_spike/classify.py), [synthetic tests](../../tests/test_classify.py), [input fixture](../../examples/route-evidence.synthetic.json)
 
-## What is verified vs pending
+## Proposed architecture
 
-**Verified from Microsoft documentation**: modern Graph sitePage canvas and webPart representation; classic master page/page layout/zone differences; limited supported Graph web-part writes; classic assessment taxonomy. **Observed via indexed public material**: CDPH has public ASPX content archetypes and an indexed SharePoint SOAP service path. **Not verified**: CDPH's live DOM, CSS, actual SharePoint edition/page type, master pages, individual web parts, component dimensions or computed styles (direct fetch failed).
+SharePoint deployment/profile discovery -> **page-family adapter** -> restricted source capture -> semantic/layout/style normalization -> versioned CIR -> target adapters.
 
-## Do next
+Different page families have separate readers, but one SharePoint site can contain multiple families; **never hardcode per-site/page-family assumptions**. CDPH is a public case study; its real source page family, stylesheets, master and webpart definitions have not been verified.
 
-Obtain an approved/redacted SharePoint page export for one modern and one classic/publishing page, then compare the source parts, rendered screenshot and CIR. Confirm source formats before implementing access adapters. Any HTML-driven observation must be compliant, rate-limited and treated as potentially incomplete.
+## Offline research spike
+
+From repository root:
+
+    python -m unittest discover -s tests -v
+    python -m research_spike.classify examples/route-evidence.synthetic.json
+
+These use synthetic data only. Neither command accesses SharePoint. A classifier route is only as reliable as the authenticated evidence supplied to it.
+
+## Current evidence status
+
+Microsoft / PnP documentation has confirmed modern Graph canvas and title area, classic page models, classic Assessment Tool limitations, CSOM WebPartManager, and the role of publishing templates. The CDPH public research is limited to indexed content and an indexed SharePoint SOAP service path; direct page/CSS retrieval failed. **No real-site mapping has yet been validated.**
+
+## Next evidence requirement
+
+Obtain a read-only authorized modern sitePage JSON and a redacted classic wiki/webpart/publishing sample including original webpart properties and layout; compare with rendered screenshots to validate source-to-CIR mapping. Do not add unredacted tenant captures to GitHub.
