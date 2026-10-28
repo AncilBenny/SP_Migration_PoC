@@ -43,11 +43,31 @@ The showcase contains **4 source web parts**, of which **3 map** to CIR controls
 
 The draft [CIR v0.1 JSON Schema](schema/page.ir.schema.json) is included for structural review.
 
+## Destination mapping — different client designs from the SAME CIR
+
+**Primary product goal:** clean SharePoint content and presentation into a portable canonical page model that can be translated to *different* client websites and controls. Reproducing the original page closely is one possible output profile; it is **not** a universal requirement. Read [ADR 004 — target mapping profiles](docs/architecture/04-generic-target-mapping-profiles.md).
+
+First generate the source-independent CIR as before, then apply a separate client profile **without running the SharePoint parser again**:
+
+```sh
+python -m poc build --input poc/samples/modern-demo.json --out demo
+python -m poc map --ir demo/page.ir.json --profile poc/profiles/client-example.json --out demo-client
+python -m http.server 8000 --directory demo-client
+```
+
+The mapper reads only the CIR, not `canvasLayout` or other SharePoint-specific fields. `linkList` becomes client-style **resource cards**, `hero` becomes a client page header, and the colors/spacing come from the destination profile. Profile choices are a small, safe, versioned catalog of supported components rather than executable templates. The same CIR may instead map to simple links with a different palette.
+
+The output directory includes `index.html`, `style.css`, `page.ir.json`, copied local assets, and `mapping-report.json` (CIR SHA-256, mapped target kinds and warnings). Static pages need no generated JavaScript. Unmapped source web parts are not discarded: they remain visible as review placeholders.
+
+**Quality depends on output intent:** faithful migrations are evaluated against source screenshots/CSS where available; client-target migrations are evaluated against the client's design/mapping specification *plus no-loss content, asset and link accounting*. This example is adapted from public documentation and doesn't prove either full real-site source fidelity or a complete production client system.
+
+**Validation:** 15 offline unit tests pass locally after adding 5 destination-mapping tests (including preservation of the same IR, custom target output, CSS injection rejection, local asset URLs, unsupported part reports, and IR HTML re-sanitization). GitHub CI remains separately unverified.
+
 ## PoC boundaries / next steps
 
 1. The Modern reader **does not** support full rich-text semantics, custom SPFx parts, inline standard parts, vertical sections, live data-bound parts, authentication, page collections, or perfect site style fidelity. The demo reports unsupported parts.
 2. Structural CSS is a neutral layout baseline, **not source-measured SharePoint/CDPH styling**. The opt-in demo mode is visually decorative, not a faithful migration. Fidelity will require observed CSS/computed styles and screenshots.
 3. Relative image references need an explicit demo asset map or an accessible source URL. This sample bundles a small original illustration to work offline.
-4. **Next: stay on Modern only.** Improve the cleanup/normalization of a messy public fixture, add source-style evidence when available, and prove a second destination mapping from the **same CIR**, while ensuring no source content silently disappears. Only then plan another source family.
+4. **Next: stay on Modern only.** The second destination profile is now implemented. Improve cleanup/normalization of a messy public serialized Modern fixture, trace all source elements, add safe URL rewrite mapping, and test target requirements before adding another source family.
 
 No SharePoint plugins or private tenant access are needed to reproduce this demo.
