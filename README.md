@@ -63,6 +63,22 @@ The output directory includes `index.html`, `style.css`, `page.ir.json`, copied 
 
 **Validation:** 15 offline unit tests pass locally after adding 5 destination-mapping tests (including preservation of the same IR, custom target output, CSS injection rejection, local asset URLs, unsupported part reports, and IR HTML re-sanitization). GitHub CI remains separately unverified.
 
+## New: public CanvasContent1 cleanup and client destination rewrites
+
+One source family only: Modern SharePoint. The PoC now accepts both documented Graph-shaped `sitePage` JSON and the **serialized modern `CanvasContent1`** representation seen in PnP CLI's publicly available fixture.
+
+```sh
+python -m poc build --input poc/samples/pnp-canvas-public.json --out demo-pnp
+python -m poc build --input poc/samples/modern-internal-links.json --out demo-rewrite
+python -m poc map --ir demo-rewrite/page.ir.json --profile poc/profiles/client-example.json --out demo-mapped
+python -m http.server 8000 --directory demo-mapped
+```
+
+The public PnP fixture decodes control IDs and canvas positions. Its custom web part remains explicitly unsupported; the decoder will not execute its code or hallucinate static content from it. The adapted internal-link sample demonstrates two source URL rewrites to `/knowledge/...` and relocation of the local image from `assets/` to `media/` **only in the client output**. The canonical JSON is byte-for-byte unchanged across the mapping step.
+
+`mapping-report.json` now includes `nodeMappings`, `urlRewrites`, `assetRewrites`, and warnings. All outputs remain **HTML/CSS** for these non-interactive examples; JS is generated only after supported behavior contracts are implemented.
+
+See [the public-source cleanup and destination rewrite milestone](docs/poc/05-public-canvas-and-client-rewrites.md), including original fixture attribution and limits.
 ## PoC boundaries / next steps
 
 1. The Modern reader **does not** support full rich-text semantics, custom SPFx parts, inline standard parts, vertical sections, live data-bound parts, authentication, page collections, or perfect site style fidelity. The demo reports unsupported parts.
