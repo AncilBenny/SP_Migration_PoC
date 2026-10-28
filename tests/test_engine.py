@@ -66,6 +66,9 @@ class EngineTests(unittest.TestCase):
             self.assertIn('Component requires review', html)
             self.assertNotIn('<script', html)
             self.assertEqual(report['components']['unknown'], 1)
+            self.assertEqual(report['webPartsFound'], 4)
+            self.assertEqual(report['mappedParts'], 3)
+            self.assertEqual(report['coveragePercent'], 75.0)
 
     def test_unknown_not_echoed_as_untrusted_html(self):
         html = render_node({'kind': 'unknown', 'props': {'sourceType': '<script>alert(1)</script>'}})
