@@ -211,9 +211,10 @@ def render_node(node: dict) -> str:
     children = "".join(render_node(c) for c in node.get("children", []))
     if kind == "page":
         return children
+    marker = f' data-ir-id="{escape(str(node.get("id", "")), quote=True)}"'
     if kind == "hero":
         eyebrow = escape(node.get("props", {}).get("eyebrow", ""))
-        return f'<header class="hero"><div class="wrap"><p class="eyebrow">{eyebrow}</p><h1>{escape(node.get("content", {}).get("text", ""))}</h1></div></header>'
+        return f'<header class="hero"{marker}><div class="wrap"><p class="eyebrow">{eyebrow}</p><h1>{escape(node.get("content", {}).get("text", ""))}</h1></div></header>'
     if kind == "section":
         return f'<section class="section"><div class="wrap">{children}</div></section>'
     if kind == "columns":
@@ -222,24 +223,22 @@ def render_node(node: dict) -> str:
         fraction = float(node.get("layout", {}).get("widthFraction", 1))
         return f'<div class="column" style="--share:{max(0.01,min(1,fraction)):.6f}">{children}</div>'
     if kind == "richText":
-        return f'<div class="rich-text">{node.get("props", {}).get("safeHtml", "")}</div>'
+        return f'<div class="rich-text"{marker}>{node.get("props", {}).get("safeHtml", "")}</div>'
     if kind == "image":
         c = node.get("content") or {}
         src = escape(node.get("props", {}).get("src", ""), quote=True)
-        return f'<figure class="image-card"><img src="{src}" alt="{escape(c.get("altText", ""), quote=True)}" loading="lazy"><figcaption>{escape(c.get("caption", ""))}</figcaption></figure>'
+        return f'<figure class="image-card"{marker}><img src="{src}" alt="{escape(c.get("altText", ""), quote=True)}" loading="lazy"><figcaption>{escape(c.get("caption", ""))}</figcaption></figure>'
     if kind == "linkList":
         links = "".join(f'<li><a href="{escape(item["url"],quote=True)}">{escape(item["label"])}</a></li>' for item in node.get("props", {}).get("items", []))
-        return f'<nav aria-label="Related resources" class="link-card"><h2>Helpful links</h2><ul>{links}</ul></nav>'
+        return f'<nav aria-label="Related resources" class="link-card"{marker}><h2>Helpful links</h2><ul>{links}</ul></nav>'
     if kind == "unknown":
-        return '<aside class="unsupported" role="note"><strong>Component requires review</strong><p>Unsupported SharePoint web part retained in the migration report.</p></aside>'
+        return f'<aside class="unsupported" role="note"{marker}><strong>Component requires review</strong><p>Unsupported SharePoint web part retained in the migration report.</p></aside>'
     return children
 
 
 DEMO_CSS = """*{box-sizing:border-box}body{margin:0;background:#f5f7fa;color:#1b2c39;font:16px/1.65 system-ui,-apple-system,Segoe UI,sans-serif} .wrap{max-width:1160px;margin:auto;padding:0 28px}.masthead{background:#fff;border-bottom:1px solid #dae2e9;padding:14px 0}.masthead .wrap{display:flex;align-items:center;justify-content:space-between}.brand{font-weight:760;color:#16456a;font-size:17px}.flag{color:#627688;font-size:13px}.hero{background:linear-gradient(120deg,#0a3d64,#125e7a 70%,#2b818c);color:white;padding:65px 0 72px}.hero h1{font-size:clamp(2.35rem,5vw,4.1rem);line-height:1.1;max-width:850px;margin:10px 0}.eyebrow{text-transform:uppercase;letter-spacing:.19em;font-weight:700;font-size:12px;color:#bce5e0}.section{padding:50px 0}.section:nth-child(odd){background:#fff}.columns{display:flex;gap:30px;align-items:start}.column{flex:calc(var(--share)*12) 1 0;min-width:0}.rich-text h2{font-size:clamp(1.6rem,3vw,2.15rem);line-height:1.3;color:#143d59;margin-top:0}.rich-text a,.link-card a{color:#096a97}.rich-text p{margin:0 0 1em}.rich-text ul{padding-left:1.25em}.image-card{margin:0;background:#fff;border:1px solid #e0e8ee;overflow:hidden;border-radius:15px;box-shadow:0 10px 30px #12365510}.image-card img{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;background:#d8eaf2}.image-card figcaption{font-size:13px;padding:11px 16px;color:#526878}.link-card{padding:25px 28px;border:1px solid #e0e8ee;border-radius:15px;background:#fff;box-shadow:0 10px 24px #1b38570c}.link-card h2{font-size:19px;margin:0 0 10px;color:#143d59}.link-card ul{list-style:none;margin:0;padding:0}.link-card li{border-top:1px solid #edf1f5}.link-card a{display:block;padding:10px 0;font-weight:600;text-decoration:none}.link-card a:hover{text-decoration:underline}.unsupported{padding:20px;background:#fff4e1;border-left:4px solid #e49a24;border-radius:6px}.unsupported p{margin:6px 0 0;font-size:13px}.footer{border-top:1px solid #d9e5e9;background:#f6fafb;color:#667989;padding:22px 0;font-size:13px}@media(max-width:750px){.wrap{padding:0 20px}.columns{flex-direction:column;gap:18px}.column{width:100%;flex:none}.hero{padding:48px 0}.section{padding:36px 0}.flag{display:none}}"""
 
 
-# Structural output keeps authored order and 12-grid widths; no invented brand.
-# This is not source-measured CSS, so visual fidelity remains unverified.
 STRUCTURAL_CSS = """*{box-sizing:border-box}body{margin:0;color:#222;background:#fff;font:16px/1.5 sans-serif}.wrap{max-width:1200px;margin:0 auto;padding:0 24px}.hero,.section{padding:24px 0}.hero h1{margin:0}.eyebrow:empty{display:none}.columns{display:flex;align-items:start;gap:20px}.column{flex:calc(var(--share)*12) 1 0;min-width:0}.rich-text{overflow-wrap:anywhere}.rich-text img,.image-card img{max-width:100%;height:auto}.image-card{margin:0}.image-card img{display:block}.image-card figcaption{font-size:.875rem}.link-card ul{padding-left:1.25rem}.unsupported{padding:1rem;border:2px dashed #888}.unsupported p{margin-bottom:0}@media(max-width:720px){.wrap{padding:0 16px}.columns{flex-direction:column}.column{width:100%;flex:none}}"""
 
 
@@ -254,6 +253,9 @@ def build(source: Path, out: Path, assets_dir: Path | None = None, *, style_mode
         doc, canvas_diagnostics = decode_modern_canvas(doc)
     ir = normalize(doc, asset_map=mappings)
     ir["diagnostics"].extend(canvas_diagnostics)
+    from .validation import source_to_ir, ir_to_html
+    from hashlib import sha256
+    source_audit = source_to_ir(doc, ir)
     out.mkdir(parents=True, exist_ok=True)
     (out / "assets").mkdir(exist_ok=True)
     if assets_dir:
@@ -267,14 +269,14 @@ def build(source: Path, out: Path, assets_dir: Path | None = None, *, style_mode
     body = render_node(ir["tree"])
     description = escape(ir["page"].get("description", ""), quote=True)
     title = escape(ir["page"]["title"])
-    # The migrated page body must not include invented branding or footer.
     html = (f'<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width,initial-scale=1">'
             f'<meta name="description" content="{description}"><title>{title}</title>'
             f'<link rel="stylesheet" href="style.css"></head><body><main>{body}</main></body></html>')
     (out / "index.html").write_text(html, encoding="utf-8")
     (out / "style.css").write_text(STRUCTURAL_CSS if style_mode == "structural" else DEMO_CSS, encoding="utf-8")
-    (out / "page.ir.json").write_text(json.dumps(ir, indent=2) + "\n", encoding="utf-8")
+    ir_text = json.dumps(ir, indent=2) + "\n"
+    (out / "page.ir.json").write_text(ir_text, encoding="utf-8")
     counts = Counter()
     def walk(n):
         counts[n["kind"]] += 1
@@ -284,5 +286,14 @@ def build(source: Path, out: Path, assets_dir: Path | None = None, *, style_mode
     total_webparts = sum(len(col.get("webparts") or []) for section in doc["canvasLayout"].get("horizontalSections", []) for col in section.get("columns") or [])
     supported = sum(counts[k] for k in ("richText", "image", "linkList"))
     report = {"source": str(source), "status": "demo-generated", "styleMode": style_mode, "visualFidelity": "unverified-no-rendered-source-baseline", "webPartsFound": total_webparts, "mappedParts": supported, "unmappedParts": counts["unknown"], "coveragePercent": round(100 * supported / total_webparts, 1) if total_webparts else 100.0, "components": dict(counts), "assets": len(ir["assets"]), "warnings": ir["diagnostics"], "limitations": ["Public documentation-adapted fixture, not an authenticated tenant extraction", "Modern Graph canvas subset only", "Source screenshots/CSS unavailable; generated styling is not a visual replica", "No dynamic behavior migration"]}
+    target_audit = ir_to_html(ir, html, {}, out)
+    quality = {"version": "1.0", "irSha256": sha256(ir_text.encode("utf-8")).hexdigest(),
+               "sourceToIr": source_audit, "irToHtml": target_audit,
+               "passed": source_audit["passed"] and target_audit["passed"],
+               "visualFidelity": "unverified-no-matched-source-baseline"}
+    (out / "quality-report.json").write_text(json.dumps(quality, indent=2) + "\n", encoding="utf-8")
+    report["contentAccounting"] = {"passed": quality["passed"],
+                                   "sourceSummary": source_audit["summary"], "outputSummary": target_audit["summary"],
+                                   "qualityReport": "quality-report.json"}
     (out / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     return report
