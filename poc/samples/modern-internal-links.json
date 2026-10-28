@@ -1,0 +1,130 @@
+{
+  "_sampleProvenance": "Adapted from Microsoft's public Graph sitePage create and get examples (structure). All names, content, identifiers and links are authored synthetic demo data; NOT a real tenant export. Additional internal links are added solely to test client URL rewrites.",
+  "_reference": "https://learn.microsoft.com/en-us/graph/api/sitepage-create?view=graph-rest-1.0",
+  "_assetMap": {
+    "https://example.org/sites/demo/SiteAssets/health.svg": "assets/health.svg"
+  },
+  "@odata.type": "#microsoft.graph.sitePage",
+  "id": "research-demo-001",
+  "name": "Community-Health.aspx",
+  "webUrl": "https://example.org/sites/demo/SitePages/Community-Health.aspx",
+  "title": "Community health resources",
+  "description": "An offline example of reusable page components extracted from a Graph-shaped SharePoint modern page.",
+  "pageLayout": "article",
+  "titleArea": {
+    "layout": "colorBlock",
+    "title": "Community health resources",
+    "textAboveTitle": "PUBLIC SERVICES"
+  },
+  "canvasLayout": {
+    "horizontalSections": [
+      {
+        "id": "section-1",
+        "layout": "oneThirdRightColumn",
+        "emphasis": "none",
+        "columns": [
+          {
+            "id": "1",
+            "width": 8,
+            "webparts": [
+              {
+                "@odata.type": "#microsoft.graph.textWebPart",
+                "id": "intro-text",
+                "innerHtml": "<h2>Find information you can use</h2><p>Explore clear, accessible guidance and practical resources for your community.</p><p>This page is reconstructed from a <strong>portable component model</strong>, not a live SharePoint runtime.</p><ul><li>Preserved headings and readable content</li><li>Responsive two-column layout</li><li>Reusable content and image blocks</li></ul><p><a href=\"/sites/demo/SitePages/service.aspx?mode=overview#steps\">Visit an internal service</a></p>"
+              }
+            ]
+          },
+          {
+            "id": "2",
+            "width": 4,
+            "webparts": [
+              {
+                "@odata.type": "#microsoft.graph.standardWebPart",
+                "id": "intro-image",
+                "webPartType": "d1d91016-032f-456d-98a4-721247c305e8",
+                "data": {
+                  "dataVersion": "1.9",
+                  "properties": {
+                    "altText": "Illustration of a community health resource card",
+                    "captionText": "Illustrative demo asset, not extracted from SharePoint"
+                  },
+                  "serverProcessedContent": {
+                    "imageSources": [
+                      {
+                        "key": "imageSource",
+                        "value": "/sites/demo/SiteAssets/health.svg"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "section-2",
+        "layout": "oneColumn",
+        "emphasis": "soft",
+        "columns": [
+          {
+            "id": "1",
+            "width": 12,
+            "webparts": [
+              {
+                "@odata.type": "#microsoft.graph.standardWebPart",
+                "id": "links-part",
+                "webPartType": "c70391ea-0b10-4ee9-b2b4-006d3fcad0cd",
+                "data": {
+                  "properties": {
+                    "items": [
+                      {
+                        "title": "SharePoint sitePage API documentation",
+                        "url": "https://learn.microsoft.com/en-us/graph/api/sitepage-get?view=graph-rest-1.0"
+                      },
+                      {
+                        "title": "CDPH public website",
+                        "url": "https://www.cdph.ca.gov/"
+                      },
+                      {
+                        "title": "Standard web-part data model",
+                        "url": "https://learn.microsoft.com/en-us/graph/api/resources/standardwebpart?view=graph-rest-1.0"
+                      },
+                      {
+                        "title": "Internal service page",
+                        "url": "/sites/demo/SitePages/service.aspx"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "section-3",
+        "layout": "oneColumn",
+        "emphasis": "none",
+        "columns": [
+          {
+            "id": "1",
+            "width": 12,
+            "webparts": [
+              {
+                "@odata.type": "#microsoft.graph.standardWebPart",
+                "id": "unknown-part",
+                "webPartType": "00000000-0000-0000-0000-000000000099",
+                "data": {
+                  "properties": {
+                    "feature": "unknown"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
