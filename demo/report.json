@@ -1,10 +1,12 @@
 {
   "source": "poc/samples/modern-demo.json",
   "status": "demo-generated",
+  "styleMode": "structural",
+  "visualFidelity": "unverified-no-rendered-source-baseline",
   "webPartsFound": 4,
   "mappedParts": 3,
   "unmappedParts": 1,
-  "coveragePercent": 75.0,
+  "coveragePercent": 75,
   "components": {
     "page": 1,
     "hero": 1,
@@ -28,6 +30,7 @@
   "limitations": [
     "Public documentation-adapted fixture, not an authenticated tenant extraction",
     "Modern Graph canvas subset only",
-    "No pixel-perfect or dynamic behavior migration"
+    "Source screenshots/CSS unavailable; generated styling is not a visual replica",
+    "No dynamic behavior migration"
   ]
 }
