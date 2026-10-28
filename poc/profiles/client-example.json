@@ -15,7 +15,23 @@
     "text": "#24323d",
     "link": "#176a87"
   },
-  "layout": {"maxWidthPx": 1080, "gapPx": 28},
+  "layout": {
+    "maxWidthPx": 1080,
+    "gapPx": 28
+  },
   "font": "system",
-  "labels": {"resourcesHeading": "Useful resources"}
+  "labels": {
+    "resourcesHeading": "Useful resources"
+  },
+  "urlMappings": [
+    {
+      "sourcePrefix": "https://example.org/sites/demo/SitePages/",
+      "targetPrefix": "/knowledge/"
+    },
+    {
+      "sourcePrefix": "https://example.org/sites/demo/",
+      "targetPrefix": "/resources/"
+    }
+  ],
+  "assetDirectory": "media"
 }
