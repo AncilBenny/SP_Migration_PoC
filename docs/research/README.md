@@ -43,3 +43,14 @@ Microsoft / PnP documentation has confirmed modern Graph canvas and title area, 
 ## Next evidence requirement
 
 Obtain a read-only authorized modern sitePage JSON and a redacted classic wiki/webpart/publishing sample including original webpart properties and layout; compare with rendered screenshots to validate source-to-CIR mapping. Do not add unredacted tenant captures to GitHub.
+
+
+## Phase 3 — field-level research and synthetic traceability
+
+10. [Source field-level blueprint for all three families](10-three-family-source-field-blueprint.md): Graph's 12-grid, titleArea, imageSources, plus classic Wiki/WebPart and Publishing fields/templates.
+11. [Stylesheet/CSS and shared site-shell research](11-style-css-site-shell-vs-page.md): distinguishing rendered CSS from authoring layouts and separating site shell, page templates and page body.
+12. [Latest research findings and CIR revision gates](12-findings-and-ir-revision-gates.md): proposed future changes to CIR with real-evidence acceptance criteria.
+
+- [Four synthetic source-to-CIR traceability cases](../../examples/research/three-family-traceability.synthetic.json) cover all three families (Classic has separate Wiki/WebPart cases).
+- Offline classifier research now accepts Graph sitePage OData type with or without a leading #, or source-verified typed responses where OData metadata was suppressed.
+- Automated GitHub Research checks currently report failure. GitHub log retrieval returned a missing-log error, so the failure reason is **not verified** and CI is not yet considered passing.
