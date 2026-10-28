@@ -1,0 +1,21 @@
+{
+  "_provenance": {
+    "kind": "public-open-source-test-fixture",
+    "originalRepository": "pnp/cli-microsoft365",
+    "originalPath": "src/m365/spo/commands/page/page-get.mock.ts",
+    "originalBlobSha": "f1f42408a85769d95ef52e04ef37a000e557576a",
+    "originalLicense": "MIT",
+    "notes": "CanvasContent1 excerpt is from PnP CLI's public fixture, not a live tenant export. Other wrapper metadata/URL authored for offline testing."
+  },
+  "ListItemAllFields": {
+    "Title": "PnP public fixture — Environments",
+    "Description": "Parser test from a publicly published serialized SharePoint canvas fixture",
+    "ClientSideApplicationId": "b6917cb1-93a0-4b97-a84d-7cf49975d4ec",
+    "PageLayoutType": "Article",
+    "CanvasContent1": "<div><div data-sp-canvascontrol=\"\" data-sp-canvasdataversion=\"1.0\" data-sp-controldata=\"&#123;&quot;controlType&quot;&#58;3,&quot;displayMode&quot;&#58;2,&quot;id&quot;&#58;&quot;f3e0587d-77b6-4bc9-b865-2eec74713c2d&quot;,&quot;position&quot;&#58;&#123;&quot;controlIndex&quot;&#58;1,&quot;sectionIndex&quot;&#58;1,&quot;zoneIndex&quot;&#58;1,&quot;sectionFactor&quot;&#58;12,&quot;layoutIndex&quot;&#58;1&#125;,&quot;webPartId&quot;&#58;&quot;1ef5ed11-ce7b-44be-bc5e-4abd55101d16&quot;,&quot;emphasis&quot;&#58;&#123;&#125;,&quot;addedFromPersistedData&quot;&#58;true,&quot;reservedHeight&quot;&#58;600,&quot;reservedWidth&quot;&#58;1180&#125;\"><div data-sp-webpart=\"\" data-sp-webpartdataversion=\"2.0\" data-sp-webpartdata=\"&#123;&quot;id&quot;&#58;&quot;1ef5ed11-ce7b-44be-bc5e-4abd55101d16&quot;,&quot;instanceId&quot;&#58;&quot;f3e0587d-77b6-4bc9-b865-2eec74713c2d&quot;,&quot;title&quot;&#58;&quot;doctor-placeholder&quot;,&quot;description&quot;&#58;&quot;Use Markdown language to add and format text.&quot;,&quot;serverProcessedContent&quot;&#58;&#123;&quot;htmlStrings&quot;&#58;&#123;&quot;html&quot;&#58;&quot;&lt;h3 id=\\&quot;summary\\&quot;&gt;Summary&lt;/h3&gt;&lt;p&gt;List of the current shared environments.&lt;/p&gt;&lt;h3 id=\\&quot;online\\&quot;&gt;Online&lt;/h3&gt;&lt;p&gt;User to use&#58; &lt;code&gt;domain\\\\user&lt;/code&gt;&lt;/p&gt;&quot;&#125;,&quot;searchablePlainTexts&quot;&#58;&#123;&quot;code&quot;&#58;&quot;\\n## Summary\\n\\nList of the current shared environments.\\n\\n## Online\\n\\nUser to use&#58; `domain\\\\user`&quot;&#125;,&quot;imageSources&quot;&#58;&#123;&#125;,&quot;links&quot;&#58;&#123;&#125;&#125;,&quot;dataVersion&quot;&#58;&quot;2.0&quot;,&quot;properties&quot;&#58;&#123;&quot;displayPreview&quot;&#58;true,&quot;lineWrapping&quot;&#58;true,&quot;miniMap&quot;&#58;&#123;&quot;enabled&quot;&#58;false&#125;,&quot;previewState&quot;&#58;&quot;Show&quot;,&quot;theme&quot;&#58;&quot;Monokai&quot;&#125;&#125;\"><div data-sp-componentid=\"\">1ef5ed11-ce7b-44be-bc5e-4abd55101d16</div><div data-sp-htmlproperties=\"\"><div data-sp-prop-name=\"html\"><h3 id=\"summary\">Summary</h3><p>List of the current shared environments.</p><h3 id=\"online\">Online</h3><p>User to use&#58; <code>domain\\user</code></p></div><div data-sp-prop-name=\"code\" data-sp-searchableplaintext=\"true\">\n## Summary\n\nList of the current shared environments.\n\n## Online\n\nUser to use&#58; `domain\\user`</div></div></div></div><div data-sp-canvascontrol=\"\" data-sp-canvasdataversion=\"1.0\" data-sp-controldata=\"&#123;&quot;controlType&quot;&#58;0,&quot;pageSettingsSlice&quot;&#58;&#123;&quot;isDefaultDescription&quot;&#58;true,&quot;isDefaultThumbnail&quot;&#58;true&#125;&#125;\"></div></div>",
+    "LayoutWebpartsContent": ""
+  },
+  "ServerRelativeUrl": "/sites/Playbook/SitePages/products/classic/environments.aspx",
+  "webUrl": "https://example.org/sites/demo/SitePages/Environments.aspx",
+  "id": "pnp-public-fixture-1"
+}
