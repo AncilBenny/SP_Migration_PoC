@@ -23,6 +23,15 @@ jobs:
         run: python -m poc build --input poc/samples/modern-demo.json --out demo
       - name: Ensure output exists
         run: test -f demo/index.html && test -f demo/page.ir.json && test -f demo/report.json
+      - name: Map existing CIR into a separate client target
+        run: python -m poc map --ir demo/page.ir.json --profile poc/profiles/client-example.json --out demo-client --strict
+      - name: Verify mapped output and immutable IR
+        run: |
+          test -f demo-client/index.html
+          test -f demo-client/style.css
+          test -f demo-client/mapping-report.json
+          test -f demo-client/assets/health.svg || test -f demo-client/media/health.svg
+          cmp demo/page.ir.json demo-client/page.ir.json
       - name: Independently validate generated HTML against CIR
         run: python -m poc validate --ir demo/page.ir.json --html demo-client/index.html --profile poc/profiles/client-example.json
       - name: Confirm accounting outputs
