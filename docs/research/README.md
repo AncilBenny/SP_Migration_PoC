@@ -1,6 +1,6 @@
 # SharePoint page migration — research index
 
-Date: 2026-10-28. Current scope: Phase 1/2 desk research and an **offline classifier spike**, not a production extractor. No authorized tenant export or live CDPH DOM/CSS inspection yet.
+Date: 2026-10-28. **MVP is limited to three page families**: Modern Site Pages; grouped Classic Wiki/Web Part content pages; Classic Publishing/Website pages. [Decision and acceptance criteria](09-mvp-scope-three-page-families.md). Other source types in the research chapters are background and future possibilities, not build commitments. Current status: desk research plus an **offline classifier spike**, not a production extractor. No authorized tenant export or live CDPH DOM/CSS inspection yet.
 
 ## Research chapters
 
@@ -12,6 +12,7 @@ Date: 2026-10-28. Current scope: Phase 1/2 desk research and an **offline classi
 6. [Semantic component and dynamic-data study](06-components-and-dynamic-data.md): preliminary webpart->CIR mappings, custom and live dependencies.
 7. [Repeatable layout/CSS capture protocol](07-style-and-layout-capture-protocol.md): site shell, style tokens, viewports and evidence capture.
 8. [Next research experiments](08-next-research-experiments.md): real-sample collection requirements and go/no-go criteria.
+9. **[MVP scope — three page families](09-mvp-scope-three-page-families.md)**: current authoritative boundary for implementation priority.
 
 ## Architecture artifacts
 
@@ -24,7 +25,7 @@ Date: 2026-10-28. Current scope: Phase 1/2 desk research and an **offline classi
 
 SharePoint deployment/profile discovery -> **page-family adapter** -> restricted source capture -> semantic/layout/style normalization -> versioned CIR -> target adapters.
 
-Different page families have separate readers, but one SharePoint site can contain multiple families; **never hardcode per-site/page-family assumptions**. CDPH is a public case study; its real source page family, stylesheets, master and webpart definitions have not been verified.
+Use **three top-level readers**: Modern Graph, grouped Classic Content (WikiField/WebPart strategy), Classic Publishing. One SharePoint site can contain multiple families; **never hardcode per-site/page-family assumptions**. CDPH is a public case study; its real source page family, stylesheets, master and webpart definitions have not been verified.
 
 ## Offline research spike
 
