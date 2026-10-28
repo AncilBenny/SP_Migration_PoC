@@ -1,0 +1,29 @@
+{
+  "source": "poc/samples/modern-demo.json",
+  "status": "demo-generated",
+  "components": {
+    "page": 1,
+    "hero": 1,
+    "section": 3,
+    "columns": 3,
+    "column": 4,
+    "richText": 1,
+    "image": 1,
+    "linkList": 1,
+    "unknown": 1
+  },
+  "assets": 1,
+  "warnings": [
+    {
+      "severity": "warning",
+      "code": "UNMAPPED_WEBPART",
+      "nodeId": "unknown-part",
+      "message": "Unsupported or unrecognized web part: 00000000-0000-0000-0000-000000000099"
+    }
+  ],
+  "limitations": [
+    "Public documentation-adapted fixture, not an authenticated tenant extraction",
+    "Modern Graph canvas subset only",
+    "No pixel-perfect or dynamic behavior migration"
+  ]
+}
