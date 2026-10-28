@@ -31,7 +31,7 @@
           {"@odata.type": "#microsoft.graph.standardWebPart", "id": "links-part", "webPartType": "c70391ea-0b10-4ee9-b2b4-006d3fcad0cd", "data": {"properties": {"items": [
             {"title": "SharePoint sitePage API documentation", "url": "https://learn.microsoft.com/en-us/graph/api/sitepage-get?view=graph-rest-1.0"},
             {"title": "CDPH public website", "url": "https://www.cdph.ca.gov/"},
-            {"title": "Read the CIR JSON", "url": "#data-model"}
+            {"title": "Standard web-part data model", "url": "https://learn.microsoft.com/en-us/graph/api/resources/standardwebpart?view=graph-rest-1.0"}
           ]}}}
         ]}]
       },
