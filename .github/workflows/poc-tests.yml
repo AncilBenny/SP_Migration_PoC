@@ -1,0 +1,25 @@
+name: PoC offline tests
+on:
+  push:
+    branches: ["poc/**"]
+  pull_request:
+    paths:
+      - "poc/**"
+      - "tests/**"
+      - ".github/workflows/poc-tests.yml"
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run offline tests
+        run: python -m unittest discover -s tests -v
+      - name: Generate example demo
+        run: python -m poc build --input poc/samples/modern-demo.json --out demo
+      - name: Ensure output exists
+        run: test -f demo/index.html && test -f demo/page.ir.json && test -f demo/report.json
