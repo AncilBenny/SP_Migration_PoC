@@ -21,5 +21,14 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Generate example demo
         run: python -m poc build --input poc/samples/modern-demo.json --out demo
-      - name: Ensure output exists
+      - name: Ensure structural output exists
         run: test -f demo/index.html && test -f demo/page.ir.json && test -f demo/report.json
+      - name: Map existing CIR into a separate client target
+        run: python -m poc map --ir demo/page.ir.json --profile poc/profiles/client-example.json --out demo-client
+      - name: Check mapped output and no-loss IR identity
+        run: |
+          test -f demo-client/index.html
+          test -f demo-client/style.css
+          test -f demo-client/mapping-report.json
+          test -f demo-client/assets/health.svg
+          cmp demo/page.ir.json demo-client/page.ir.json
