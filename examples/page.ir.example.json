@@ -1,0 +1,151 @@
+{
+  "schemaVersion": "0.1.0",
+  "source": {
+    "platform": "sharepoint",
+    "pageModel": "modern",
+    "url": "https://example.com/sites/demo/SitePages/Example.aspx",
+    "capturedAt": "2026-10-28T00:00:00Z",
+    "captureMethod": "manual-fixture",
+    "evidenceConfidence": "synthetic"
+  },
+  "page": {
+    "id": "synthetic-demo-page",
+    "title": "Example health information page",
+    "description": "Synthetic fixture for architecture review, not a real SharePoint export",
+    "path": "/sites/demo/SitePages/Example.aspx",
+    "locale": "en-US",
+    "publicationState": "sample"
+  },
+  "designTokens": {
+    "colors": {
+      "text.primary": "#222222",
+      "link.default": "#155EAA"
+    },
+    "spacing": {
+      "section.default": "24px"
+    }
+  },
+  "assets": [
+    {
+      "id": "illustration-1",
+      "originalUrl": "https://example.com/assets/illustration.png",
+      "kind": "image",
+      "status": "external",
+      "altText": "Illustrative placeholder graphic"
+    }
+  ],
+  "tree": {
+    "id": "root",
+    "kind": "page",
+    "children": [
+      {
+        "id": "section-1",
+        "kind": "section",
+        "order": 0,
+        "sourceRef": {
+          "path": "canvasLayout.horizontalSections[0]",
+          "evidence": "synthetic"
+        },
+        "children": [
+          {
+            "id": "cols-1",
+            "kind": "columns",
+            "layout": {
+              "columnCount": 2
+            },
+            "children": [
+              {
+                "id": "col-1",
+                "kind": "column",
+                "order": 0,
+                "layout": {
+                  "widthFraction": 0.6666667
+                },
+                "children": [
+                  {
+                    "id": "title-1",
+                    "kind": "heading",
+                    "content": {
+                      "text": "Information and resources",
+                      "level": 2
+                    },
+                    "fidelity": {
+                      "status": "exact"
+                    }
+                  },
+                  {
+                    "id": "body-1",
+                    "kind": "richText",
+                    "content": {
+                      "segments": [
+                        {
+                          "text": "This is synthetic example content."
+                        }
+                      ]
+                    },
+                    "fidelity": {
+                      "status": "exact"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "col-2",
+                "kind": "column",
+                "order": 1,
+                "layout": {
+                  "widthFraction": 0.3333333
+                },
+                "children": [
+                  {
+                    "id": "image-1",
+                    "kind": "image",
+                    "content": {
+                      "assetId": "illustration-1",
+                      "altText": "Illustrative placeholder graphic"
+                    },
+                    "fidelity": {
+                      "status": "approximate",
+                      "reason": "Fixture does not contain original crop or responsive behaviors"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "section-2",
+        "kind": "section",
+        "order": 1,
+        "children": [
+          {
+            "id": "custom-1",
+            "kind": "unknown",
+            "sourceRef": {
+              "webPartId": "synthetic-custom-guid",
+              "webPartType": "synthetic-type",
+              "evidence": "synthetic"
+            },
+            "fidelity": {
+              "status": "unsupported",
+              "reason": "Custom web-part mapping not available"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "UNMAPPED_WEBPART",
+      "message": "Synthetic custom part requires review",
+      "nodeId": "custom-1"
+    }
+  ],
+  "extensions": {
+    "fixtureNote": "All source details are invented for schema testing; CDPH content is not included."
+  }
+}
