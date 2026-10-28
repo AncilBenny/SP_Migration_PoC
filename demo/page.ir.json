@@ -138,8 +138,8 @@
                           "url": "https://www.cdph.ca.gov/"
                         },
                         {
-                          "label": "Read the CIR JSON",
-                          "url": "#data-model"
+                          "label": "Standard web-part data model",
+                          "url": "https://learn.microsoft.com/en-us/graph/api/resources/standardwebpart?view=graph-rest-1.0"
                         }
                       ]
                     },
