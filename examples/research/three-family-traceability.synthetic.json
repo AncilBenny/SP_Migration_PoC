@@ -1,0 +1,282 @@
+{
+  "fixtureVersion": "research-0.1",
+  "synthetic": true,
+  "disclaimer": "NOT CDPH or tenant data. Field names reflect Microsoft Graph and known classic SharePoint examples. Classic part/field contents and source layouts are invented for mapping discussion.",
+  "scenarios": [
+    {
+      "scenarioId": "A-modern-two-column",
+      "sourceFamily": "modern",
+      "sourceMode": "synthetic-documented-shape",
+      "description": "Modern Site Page, title area, 8+4 columns, text and Image webpart; illustrative structure only",
+      "source": {
+        "@odata.type": "microsoft.graph.sitePage",
+        "id": "fake-sitepage-001",
+        "title": "Demo information page",
+        "titleArea": {
+          "layout": "imageAndTitle",
+          "imageWebUrl": "https://example.invalid/banner.png",
+          "alternativeText": "Decorative sample banner"
+        },
+        "canvasLayout": {
+          "horizontalSections": [
+            {
+              "id": "1",
+              "layout": "oneThirdRightColumn",
+              "emphasis": "soft",
+              "columns": [
+                {
+                  "id": "1",
+                  "width": 8,
+                  "webparts": [
+                    {
+                      "@odata.type": "#microsoft.graph.textWebPart",
+                      "id": "fake-text-01",
+                      "innerHtml": "<h2>Resources</h2><p>Example content.</p>"
+                    }
+                  ]
+                },
+                {
+                  "id": "2",
+                  "width": 4,
+                  "webparts": [
+                    {
+                      "@odata.type": "#microsoft.graph.standardWebPart",
+                      "id": "fake-image-01",
+                      "webPartType": "d1d91016-032f-456d-98a4-721247c305e8",
+                      "data": {
+                        "properties": {
+                          "altText": "Sample illustration",
+                          "captionText": "Example caption"
+                        },
+                        "serverProcessedContent": {
+                          "imageSources": [
+                            {
+                              "key": "imageSource",
+                              "value": "/assets/sample.png"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "expectedMappings": [
+        {
+          "sourcePath": "$.titleArea",
+          "kind": "hero",
+          "fidelity": "approximate",
+          "note": "TitleArea is separate from canvas; preserve layout and asset"
+        },
+        {
+          "sourcePath": "$.canvasLayout.horizontalSections[0]",
+          "kind": "section",
+          "fidelity": "exact",
+          "note": "Preserve section index, layout and emphasis"
+        },
+        {
+          "sourcePath": "$.canvasLayout.horizontalSections[0].columns[0]",
+          "kind": "column",
+          "widthFraction": 0.6666666667,
+          "fidelity": "exact",
+          "note": "8 of 12 grid units; no pixel interpretation"
+        },
+        {
+          "sourcePath": "$.canvasLayout.horizontalSections[0].columns[1]",
+          "kind": "column",
+          "widthFraction": 0.3333333333,
+          "fidelity": "exact",
+          "note": "4 of 12 grid units"
+        },
+        {
+          "sourcePath": "$.canvasLayout.horizontalSections[0].columns[0].webparts[0].innerHtml",
+          "kind": "richText",
+          "fidelity": "approximate",
+          "note": "Requires sanitization and AST splitting policy"
+        },
+        {
+          "sourcePath": "$.canvasLayout.horizontalSections[0].columns[1].webparts[0]",
+          "kind": "image",
+          "fidelity": "approximate",
+          "note": "Image URL in serverProcessedContent; source ref/alt/caption required"
+        }
+      ],
+      "expectedDiagnostics": []
+    },
+    {
+      "scenarioId": "B-classic-wiki",
+      "sourceFamily": "classic-content",
+      "subtype": "classic-wiki",
+      "sourceMode": "synthetic-structural-shape",
+      "description": "WikiField contains authored rich HTML plus an embedded webpart reference",
+      "source": {
+        "pageType": "WikiPage",
+        "listItemId": 123,
+        "fields": {
+          "Title": "Example wiki",
+          "WikiField": "<h2>Overview</h2><p>Wiki content</p><div data-example-embedded-part='fake-part-01'></div>"
+        },
+        "embeddedParts": [
+          {
+            "id": "fake-part-01",
+            "type": "ContentEditorWebPart",
+            "zoneId": "Main",
+            "zoneIndex": 0,
+            "html": "<p>Additional resources</p>"
+          }
+        ]
+      },
+      "expectedMappings": [
+        {
+          "sourcePath": "$.fields.WikiField",
+          "kind": "richText",
+          "fidelity": "approximate",
+          "note": "Parse rich HTML and locate embedded references; do not render placeholder DIV as user content"
+        },
+        {
+          "sourcePath": "$.embeddedParts[0]",
+          "kind": "richText",
+          "fidelity": "approximate",
+          "note": "Resolve webpart ID to embedded position; avoid rendering twice"
+        }
+      ],
+      "expectedDiagnostics": []
+    },
+    {
+      "scenarioId": "B-classic-zoned-webpart",
+      "sourceFamily": "classic-content",
+      "subtype": "classic-webpart",
+      "sourceMode": "synthetic-structural-shape",
+      "description": "Classic Web Part Page with two zones and an unmapped custom part",
+      "source": {
+        "pageType": "WebPartPage",
+        "fileUrl": "/sites/demo/SitePages/Example.aspx",
+        "webparts": [
+          {
+            "id": "fake-wp-01",
+            "type": "ContentEditorWebPart",
+            "zoneId": "LeftColumn",
+            "zoneIndex": 0,
+            "html": "<h3>Welcome</h3>"
+          },
+          {
+            "id": "fake-wp-02",
+            "type": "Vendor.CustomWebPart",
+            "zoneId": "RightColumn",
+            "zoneIndex": 0,
+            "properties": {
+              "title": "Unknown interactive feature"
+            }
+          }
+        ]
+      },
+      "expectedMappings": [
+        {
+          "sourcePath": "$.webparts[0]",
+          "kind": "richText",
+          "fidelity": "approximate",
+          "note": "Requires part-specific content transformation and zone position"
+        },
+        {
+          "sourcePath": "$.webparts[1]",
+          "kind": "unknown",
+          "fidelity": "unsupported",
+          "note": "Retain source id/type, zone and diagnostics; never drop"
+        }
+      ],
+      "expectedDiagnostics": [
+        {
+          "code": "UNMAPPED_WEBPART",
+          "sourcePath": "$.webparts[1]"
+        }
+      ]
+    },
+    {
+      "scenarioId": "C-classic-publishing",
+      "sourceFamily": "classic-publishing",
+      "sourceMode": "synthetic-structural-shape",
+      "description": "Publishing page fields placed into layout slots; shared header/footer from master once",
+      "source": {
+        "pageType": "PublishingPage",
+        "pageId": "fake-publishing-001",
+        "masterRef": "/_catalogs/masterpage/example.master",
+        "layoutRef": "/_catalogs/masterpage/example-layout.aspx",
+        "layoutDefinition": {
+          "slots": [
+            {
+              "name": "Body",
+              "field": "PublishingPageContent"
+            },
+            {
+              "name": "LeadImage",
+              "field": "PublishingPageImage"
+            }
+          ],
+          "zones": [
+            {
+              "zoneId": "RightRail"
+            }
+          ]
+        },
+        "fields": {
+          "Title": "Example public article",
+          "PublishingPageContent": "<h2>About</h2><p>Page-specific description</p>",
+          "PublishingPageImage": "/assets/lead.png"
+        },
+        "webparts": [
+          {
+            "id": "fake-fixed-01",
+            "zoneId": "RightRail",
+            "type": "Vendor.CustomSearchPart"
+          }
+        ]
+      },
+      "expectedMappings": [
+        {
+          "sourcePath": "$.masterRef",
+          "kind": "siteShell",
+          "fidelity": "approximate",
+          "note": "Reusable site chrome, one shared definition (not repeated as body)"
+        },
+        {
+          "sourcePath": "$.layoutRef",
+          "kind": "section",
+          "fidelity": "approximate",
+          "note": "Source-to-CIR template association; need real layout file for exact positioning"
+        },
+        {
+          "sourcePath": "$.fields.PublishingPageContent",
+          "kind": "richText",
+          "fidelity": "approximate",
+          "note": "Position from publishing layout Body slot"
+        },
+        {
+          "sourcePath": "$.fields.PublishingPageImage",
+          "kind": "image",
+          "fidelity": "approximate",
+          "note": "Source asset, alt unresolved without metadata"
+        },
+        {
+          "sourcePath": "$.webparts[0]",
+          "kind": "unknown",
+          "fidelity": "unsupported",
+          "note": "Custom interactive part needs source-specific mapping"
+        }
+      ],
+      "expectedDiagnostics": [
+        {
+          "code": "UNMAPPED_WEBPART",
+          "sourcePath": "$.webparts[0]"
+        },
+        {
+          "code": "IMAGE_ALT_UNRESOLVED",
+          "sourcePath": "$.fields.PublishingPageImage"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "_note": "Synthetic test metadata only; not exported from a SharePoint tenant or CDPH.",
+  "deployment": "online",
+  "url": "https://example.com/sites/demo/SitePages/Sample.aspx",
+  "graphSitePage": {
+    "@odata.type": "#microsoft.graph.sitePage",
+    "id": "synthetic-page-01",
+    "canvasLayout": {
+      "horizontalSections": []
+    }
+  },
+  "assessmentCoverageVerified": false,
+  "publicHtmlObserved": false
+}

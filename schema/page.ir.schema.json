@@ -1,0 +1,502 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AncilBenny/SP_Migration_PoC/blob/main/schema/page.ir.schema.json",
+  "title": "SharePoint Migration Canonical Intermediate Representation — research draft v0.1",
+  "description": "Proposed portable semantic page representation, NOT an existing SharePoint API schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "source",
+    "page",
+    "tree",
+    "assets",
+    "diagnostics"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform",
+        "pageModel",
+        "url",
+        "capturedAt",
+        "captureMethod"
+      ],
+      "properties": {
+        "platform": {
+          "const": "sharepoint"
+        },
+        "pageModel": {
+          "enum": [
+            "modern",
+            "classic-wiki",
+            "classic-webpart",
+            "classic-publishing",
+            "classic-other",
+            "unknown"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "siteId": {
+          "type": "string"
+        },
+        "pageId": {
+          "type": "string"
+        },
+        "captureMethod": {
+          "enum": [
+            "graph",
+            "csom",
+            "sharepoint-rest",
+            "pnp",
+            "public-html",
+            "manual-fixture"
+          ]
+        },
+        "capturedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "evidenceConfidence": {
+          "enum": [
+            "api",
+            "rendered",
+            "heuristic",
+            "synthetic"
+          ]
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string"
+        },
+        "publicationState": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "tree": {
+      "$ref": "#/$defs/node"
+    },
+    "designTokens": {
+      "type": "object",
+      "description": "Optional discovered sitewide token catalog. Token semantics require further research.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/asset"
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/diagnostic"
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "page",
+            "siteShell",
+            "section",
+            "container",
+            "columns",
+            "column",
+            "heading",
+            "paragraph",
+            "richText",
+            "list",
+            "table",
+            "image",
+            "video",
+            "file",
+            "embed",
+            "quote",
+            "hero",
+            "card",
+            "cardCollection",
+            "linkList",
+            "navigation",
+            "callout",
+            "divider",
+            "spacer",
+            "accordion",
+            "tabs",
+            "search",
+            "dynamicCollection",
+            "form",
+            "unknown"
+          ]
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "variant": {
+          "type": "string"
+        },
+        "semanticRole": {
+          "type": "string"
+        },
+        "content": {
+          "$ref": "#/$defs/content"
+        },
+        "props": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Control-specific properties; to be refined into per-kind schemas after source sampling."
+        },
+        "layout": {
+          "$ref": "#/$defs/layout"
+        },
+        "styles": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "Only normalized tokens and safe observed overrides."
+        },
+        "sourceRef": {
+          "$ref": "#/$defs/sourceRef"
+        },
+        "fidelity": {
+          "$ref": "#/$defs/fidelity"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "unknown"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "sourceRef",
+              "fidelity"
+            ]
+          }
+        }
+      ]
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "segments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "text"
+            ],
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "marks": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "strong",
+                    "emphasis",
+                    "underline",
+                    "code",
+                    "subscript",
+                    "superscript"
+                  ]
+                }
+              },
+              "href": {
+                "type": "string"
+              },
+              "lang": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "altText": {
+          "type": "string"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "assetId": {
+          "type": "string"
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "table": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "widthFraction": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "columnCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "alignment": {
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "stretch"
+          ]
+        },
+        "breakpointHints": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "gapToken": {
+          "type": "string"
+        },
+        "containerToken": {
+          "type": "string"
+        }
+      }
+    },
+    "sourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "field": {
+          "type": "string"
+        },
+        "webPartId": {
+          "type": "string"
+        },
+        "webPartType": {
+          "type": "string"
+        },
+        "domSelector": {
+          "type": "string"
+        },
+        "evidence": {
+          "enum": [
+            "api",
+            "rendered",
+            "heuristic",
+            "synthetic"
+          ]
+        },
+        "capturePointer": {
+          "type": "string"
+        }
+      }
+    },
+    "fidelity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "exact",
+            "approximate",
+            "unresolved",
+            "unsupported"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "originalUrl",
+        "kind",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "originalUrl": {
+          "type": "string"
+        },
+        "resolvedUrl": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "image",
+            "video",
+            "file",
+            "font",
+            "other"
+          ]
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "resolved",
+            "failed",
+            "restricted",
+            "external"
+          ]
+        },
+        "mimeType": {
+          "type": "string"
+        },
+        "altText": {
+          "type": "string"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "checksum": {
+          "type": "string"
+        }
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "severity",
+        "code",
+        "message"
+      ],
+      "properties": {
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ]
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string"
+        },
+        "nodeId": {
+          "type": "string"
+        },
+        "sourcePath": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

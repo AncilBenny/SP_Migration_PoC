@@ -1,0 +1,240 @@
+{
+  "evidenceVersion": "public-research-0.2",
+  "capturedAt": "2026-10-28",
+  "policy": "Publicly readable pages and open-source repository files only. Store derived structural facts and source links; no tenant credentials, private data, or copied page bodies.",
+  "items": [
+    {
+      "id": "public-modern-pnp",
+      "family": "modern",
+      "kind": "published_test_fixture",
+      "confidence": "public-source-file-confirmed",
+      "source": {
+        "url": "https://github.com/pnp/cli-microsoft365/blob/main/src/m365/spo/commands/page/page-get.mock.ts",
+        "repository": "pnp/cli-microsoft365",
+        "path": "src/m365/spo/commands/page/page-get.mock.ts",
+        "blobSha": "f1f42408a85769d95ef52e04ef37a000e557576a"
+      },
+      "facts": {
+        "modernListItemFields": [
+          "ClientSideApplicationId",
+          "PageLayoutType",
+          "CanvasContent1",
+          "LayoutWebpartsContent",
+          "Title",
+          "Description"
+        ],
+        "canvasMarkupContains": [
+          "data-sp-canvascontrol",
+          "data-sp-controldata",
+          "data-sp-webpartdata",
+          "data-sp-htmlproperties"
+        ],
+        "hasSerializedPartMetadata": true
+      },
+      "limitations": [
+        "Fixture is not a live site export",
+        "Graph sitePage JSON is a different API representation from CanvasContent1"
+      ]
+    },
+    {
+      "id": "public-classic-wiki-pnp",
+      "family": "classic-content",
+      "subtype": "wiki",
+      "kind": "published_test_fixture",
+      "confidence": "public-source-file-confirmed",
+      "source": {
+        "url": "https://github.com/pnp/cli-microsoft365/blob/main/src/m365/spo/commands/page/page-get.mock.ts",
+        "repository": "pnp/cli-microsoft365",
+        "path": "src/m365/spo/commands/page/page-get.mock.ts",
+        "blobSha": "f1f42408a85769d95ef52e04ef37a000e557576a"
+      },
+      "facts": {
+        "wikiFieldPresent": true,
+        "layoutTableId": "layoutsTable",
+        "embeddedWebPartPlaceholderCount": 3,
+        "layoutDataObserved": "true,false,2",
+        "twoSideBySideCellsObserved": true,
+        "cssClassClues": [
+          "ms-rte-layoutszone-outer",
+          "ms-wiki-columnSpacing"
+        ]
+      },
+      "limitations": [
+        "Fixture is not a live page",
+        "Placeholder HTML does not expose complete webpart definitions",
+        "Style widths in authored markup do not prove computed viewport layouts"
+      ]
+    },
+    {
+      "id": "public-classic-zoned-template",
+      "family": "classic-content",
+      "subtype": "webpart",
+      "kind": "open_source_template",
+      "confidence": "public-source-file-confirmed",
+      "source": {
+        "url": "https://github.com/Puzzlepart/prosjektportalen/blob/master/templates/root/Resources/SitePage.txt",
+        "repository": "Puzzlepart/prosjektportalen",
+        "path": "templates/root/Resources/SitePage.txt",
+        "blobSha": "91bab1b83d68ce8def5c274c6a71d2684df01dfe"
+      },
+      "facts": {
+        "masterReference": "~masterurl/default.master",
+        "webPartZoneIds": [
+          "LeftColumn",
+          "RightColumn"
+        ],
+        "responsiveClassClues": [
+          "ms-sm12",
+          "ms-md12",
+          "ms-lg12",
+          "ms-xxl8",
+          "ms-xxl4"
+        ],
+        "hasStyleBlock": true,
+        "hasScriptBlock": true
+      },
+      "limitations": [
+        "Template contains placement zones, not the webpart instance data",
+        "No real rendered CSS dimensions verified"
+      ]
+    },
+    {
+      "id": "public-publishing-page-instance",
+      "family": "classic-publishing",
+      "kind": "public_source_page_file",
+      "confidence": "public-source-file-confirmed",
+      "source": {
+        "url": "https://github.com/bhanurao/lhe-map/blob/master/Pages/lheByRegion.aspx",
+        "repository": "bhanurao/lhe-map",
+        "path": "Pages/lheByRegion.aspx",
+        "blobSha": "fae531c20ec3d6a313afad704015711ec4102077"
+      },
+      "facts": {
+        "redirectPageClass": "Microsoft.SharePoint.Publishing.TemplateRedirectionPage",
+        "masterReference": "~masterurl/custom.master",
+        "pageLayoutName": "homepage.aspx",
+        "publishingPageLayoutFieldPresent": true,
+        "publishingPageContentFieldPresent": true,
+        "publishingBodyContainsWebPartPlaceholder": true
+      },
+      "limitations": [
+        "Referenced homepage.aspx layout file has not been obtained from this same site",
+        "Master page definition unavailable",
+        "Contains page metadata, not full composed rendered body"
+      ]
+    },
+    {
+      "id": "public-publishing-template-pnp",
+      "family": "classic-publishing",
+      "kind": "open_source_page_layout",
+      "confidence": "public-source-file-confirmed",
+      "source": {
+        "url": "https://github.com/pnp/PnP-Transformation/blob/master/Reference%20Material/Contoso.Intranet/Contoso.Intranet/SP/Modules/MOPageLayouts/ContosoWelcomeLinks.aspx",
+        "repository": "pnp/PnP-Transformation",
+        "path": "Reference Material/Contoso.Intranet/Contoso.Intranet/SP/Modules/MOPageLayouts/ContosoWelcomeLinks.aspx",
+        "blobSha": "61a059378d8ede75549e5e19394f3459ef311f4d"
+      },
+      "facts": {
+        "layoutClass": "Microsoft.SharePoint.Publishing.PublishingLayoutPage",
+        "fieldControlNames": [
+          "Title",
+          "PublishingPageImage",
+          "PublishingPageContent",
+          "SummaryLinks",
+          "SummaryLinks2"
+        ],
+        "webPartZoneIds": [
+          "TopColumnZone",
+          "LeftColumnZone",
+          "RightColumnZone"
+        ],
+        "registeredStylesheetNames": [
+          "pagelayouts15.css",
+          "editmode15.css"
+        ],
+        "breadcrumbControlPresent": true
+      },
+      "limitations": [
+        "Template is from a different repository/site than public-publishing-page-instance: DO NOT join them as the same template+page",
+        "CSS file references do not expose current computed styles"
+      ]
+    },
+    {
+      "id": "public-cdph-hie-home",
+      "family": "unclassified",
+      "kind": "live_public_rendered_page",
+      "confidence": "visible-content-observed-only",
+      "source": {
+        "url": "https://hie.cdph.ca.gov/"
+      },
+      "facts": {
+        "pageHeading": "How to Meet Center for Medicare and Medicaid Services Public Health Reporting Measures in California",
+        "hasBulletList": true,
+        "hasLinkTable": true,
+        "hasFooterLinks": true,
+        "hasHomeAndFaqNavigation": true,
+        "contentBlocksSuggested": [
+          "heading",
+          "paragraph",
+          "list",
+          "table",
+          "navigation",
+          "footer"
+        ]
+      },
+      "limitations": [
+        "SharePoint use NOT verified",
+        "Authoring fields, webparts, master and CSS unavailable",
+        "Do not route to a SharePoint adapter from this URL"
+      ]
+    },
+    {
+      "id": "public-cdph-hie-faq",
+      "family": "unclassified",
+      "kind": "live_public_rendered_page",
+      "confidence": "visible-content-observed-only",
+      "source": {
+        "url": "https://hie.cdph.ca.gov/faq.html"
+      },
+      "facts": {
+        "pageHeading": "HIE Gateway Frequently Asked Questions",
+        "hasTopicalQuestionLinks": true,
+        "hasMultipleHeadedAnswers": true,
+        "contentBlocksSuggested": [
+          "heading",
+          "paragraph",
+          "navigation",
+          "linkList",
+          "section"
+        ]
+      },
+      "limitations": [
+        "SharePoint use NOT verified",
+        "Question links are observed; accordion interaction NOT verified",
+        "Do not route to a SharePoint adapter from this URL"
+      ]
+    },
+    {
+      "id": "public-cdph-main-site",
+      "family": "unknown",
+      "kind": "public_site_fetch_failure",
+      "confidence": "fetch-not-observed",
+      "source": {
+        "url": "https://www.cdph.ca.gov/Programs/EPO/Pages/Program-Landing1.aspx"
+      },
+      "facts": {
+        "directFetchFailedWithStatus": 502
+      },
+      "limitations": [
+        "No HTML/DOM/CSS or page-type verification",
+        "Search-indexed content alone is not an authoring-source export"
+      ]
+    }
+  ],
+  "researchConclusions": [
+    "Public source files support all three MVP page-family structural studies, but none provide simultaneous verified API source + live rendered output + matching CSS for the same site.",
+    "The publishing page instance and publishing layout example originate from distinct sites and cannot be treated as an actual matched pair.",
+    "Anonymous public site pages can demonstrate semantic controls but do not reveal internal SharePoint authoring properties.",
+    "Modern SharePoint Online is usually access-controlled; public Microsoft Graph examples and published fixtures are appropriate offline evidence for initial PoC, with limitations labeled."
+  ]
+}
