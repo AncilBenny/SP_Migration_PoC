@@ -32,3 +32,23 @@ jobs:
           test -f demo-client/mapping-report.json
           test -f demo-client/assets/health.svg
           cmp demo/page.ir.json demo-client/page.ir.json
+      - name: Parse the public PnP CanvasContent1 fixture
+        run: python -m poc build --input poc/samples/pnp-canvas-public.json --out demo-pnp
+      - name: Generate source + client mapped internal-link sample
+        run: |
+          python -m poc build --input poc/samples/modern-internal-links.json --out demo-rewrite
+          python -m poc map --ir demo-rewrite/page.ir.json --profile poc/profiles/client-example.json --out demo-mapped
+      - name: Check rewritten links, assets and original CIR identity
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path('demo-mapped/mapping-report.json').read_text())
+          assert len(report['urlRewrites']) == 2, report['urlRewrites']
+          assert len(report['assetRewrites']) == 1, report['assetRewrites']
+          assert Path('demo-mapped/media/health.svg').is_file()
+          assert '/knowledge/service.aspx' in Path('demo-mapped/index.html').read_text()
+          assert Path('demo-rewrite/page.ir.json').read_bytes() == Path('demo-mapped/page.ir.json').read_bytes()
+          assert json.loads(Path('demo-pnp/report.json').read_text())['unmappedParts'] >= 1
+          PY
+
