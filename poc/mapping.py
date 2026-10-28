@@ -14,6 +14,7 @@ import re
 import shutil
 
 from .engine import safe_url, sanitize_html
+from .rewrites import validate_url_mappings, rewrite_url, rewrite_rich_html
 
 TARGETS = {
     'hero': {'pageHeader'},
@@ -36,7 +37,7 @@ def validate_profile(profile: dict) -> dict:
         raise ValueError('Expected target mapping profile version 1.0')
     if not isinstance(profile.get('id'), str) or not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,63}', profile['id']):
         raise ValueError('Invalid profile id')
-    if set(profile) - {'version', 'id', 'components', 'colors', 'layout', 'font', 'labels'}:
+    if set(profile) - {'version', 'id', 'components', 'colors', 'layout', 'font', 'labels', 'urlMappings', 'assetDirectory'}:
         raise ValueError('Unknown profile configuration keys')
     components = profile.get('components', {})
     if not isinstance(components, dict):
@@ -63,6 +64,10 @@ def validate_profile(profile: dict) -> dict:
         raise ValueError('Invalid labels')
     if any(not isinstance(v, str) or len(v) > 120 for v in labels.values()):
         raise ValueError('Invalid label length')
+    directory = profile.get('assetDirectory', 'assets')
+    if not isinstance(directory, str) or not re.fullmatch(r'[a-z][a-z0-9_-]{0,31}', directory):
+        raise ValueError('assetDirectory must be a simple safe folder name')
+    validate_url_mappings(profile.get('urlMappings', []))
     return profile
 
 
@@ -75,6 +80,11 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
     counts: Counter[str] = Counter()
     diagnostics: list[dict] = []
     base_url = ir.get('source', {}).get('url', '')
+    url_audit: list[dict] = []
+    node_mappings: list[dict] = []
+    asset_rewrites: list[dict] = []
+    asset_directory = profile.get('assetDirectory', 'assets')
+    rules = profile.get('urlMappings', [])
 
     def node_html(node: dict) -> str:
         kind = node.get('kind')
@@ -98,6 +108,7 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
             return f'<aside class="target-unmapped" role="note">Unmapped content kind: {escape(str(kind))}</aside>'
         target = mapping[kind]
         counts[f'{kind}:{target}'] += 1
+        node_mappings.append({'nodeId': str(node.get('id', '')), 'sourceRef': node.get('sourceRef'), 'irKind': kind, 'targetComponent': target})
         data = node.get('content') or {}
         props = node.get('props') or {}
         if target == 'pageHeader':
@@ -106,7 +117,7 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
             return f'<header class="target-header"><div class="target-wrap">{subtitle}<h1>{escape(str(data.get("text", "")))}</h1></div></header>'
         if target == 'contentBody':
             # Sanitize again: a CIR file may be modified independently of extraction.
-            return f'<div class="target-body">{sanitize_html(str(props.get("safeHtml", "")), base_url)}</div>'
+            return f'<div class="target-body">{rewrite_rich_html(str(props.get("safeHtml", "")), base_url, rules, url_audit, node_id=str(node.get("id", "")))}</div>'
         if target == 'media':
             original_src = str(props.get('src', ''))
             # Reuse assets already rewritten by the CIR build, instead of
@@ -115,6 +126,9 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
                        '..' not in Path(original_src).parts and
                        any(a.get('resolvedUrl') == original_src for a in ir.get('assets', [])))
             src = original_src if bundled else safe_url(original_src, base_url)
+            if bundled and asset_directory != 'assets':
+                src = asset_directory + '/' + original_src[len('assets/'):]
+                asset_rewrites.append({'nodeId': str(node.get('id', '')), 'originalPath': original_src, 'targetPath': src})
             if src.startswith(('mailto:', '#')):
                 src = ''
             alt = escape(str(data.get('altText', '')), quote=True)
@@ -126,7 +140,7 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
         if target in {'simpleLinks', 'resourceCards'}:
             items = []
             for link in props.get('items', []):
-                href = safe_url(str(link.get('url', '')), base_url)
+                href = rewrite_url(str(link.get('url', '')), base_url, rules, url_audit, node_id=str(node.get('id', '')))
                 if not href:
                     diagnostics.append({'code': 'TARGET_UNSAFE_LINK', 'nodeId': str(node.get('id', ''))})
                     continue
@@ -157,7 +171,7 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
     variables = ':root{' + ''.join(f'--{k}:{v};' for k, v in palette.items()) + f'--content-width:{width}px;--gap:{gap}px;' + '}'
     css = variables + f'''*{{box-sizing:border-box}}body{{margin:0;color:var(--text);background:var(--background);font:16px/1.55 {font}}}.target-wrap{{max-width:var(--content-width);padding:0 24px;margin:auto}}.target-header{{padding:54px 0;background:var(--primary);color:#fff}}.target-header h1{{font-size:clamp(2rem,4vw,3.25rem);margin:0}}.target-eyebrow{{font-size:13px;letter-spacing:.12em;text-transform:uppercase}}.target-section{{padding:36px 0}}.target-grid{{display:flex;gap:var(--gap);align-items:start}}.target-column{{flex:calc(var(--fraction)*12) 1 0;min-width:0}}.target-body{{overflow-wrap:anywhere}}.target-body h2{{font-size:1.75rem}}.target-body a,.target-resources a,.target-links a{{color:var(--link)}}.target-media{{margin:0}}.target-media img{{max-width:100%;height:auto;display:block}}.target-media figcaption{{font-size:.85rem;color:var(--text)}}.target-resources{{padding:16px 0}}.target-cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}}.target-resource{{padding:18px;border:1px solid #d7dde3;background:var(--surface);border-radius:8px}}.target-resource a{{font-weight:700}}.target-unmapped{{padding:16px;border:2px dashed #777}}@media(max-width:720px){{.target-grid{{flex-direction:column}}.target-column{{width:100%;flex:none}}.target-wrap{{padding:0 16px}}}}'''
     report = {'profileId': profile['id'], 'inputFormat': 'canonical-page-ir', 'targetFormat': 'html-css',
-              'mappedComponents': dict(counts), 'mappingWarnings': diagnostics,
+              'mappedComponents': dict(counts), 'nodeMappings': node_mappings, 'urlRewrites': url_audit, 'assetRewrites': asset_rewrites, 'mappingWarnings': diagnostics,
               'sourceFidelity': 'not-evaluated-target-redesign-intent',
               'sharePointSourceReaderUsed': False}
     return html, css, report
@@ -183,7 +197,8 @@ def build_target(ir_path: Path, profile_path: Path, out: Path) -> dict:
             if not source.is_file():
                 report['mappingWarnings'].append({'code': 'TARGET_MISSING_ASSET', 'path': path})
                 continue
-            destination = out / path
+            dest_path = profile.get('assetDirectory', 'assets') + '/' + path[len('assets/'):]
+            destination = out / dest_path
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, destination)
     (out / 'mapping-report.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
