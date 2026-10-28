@@ -106,6 +106,7 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
         if kind not in TARGETS:
             diagnostics.append({'code': 'TARGET_UNMAPPED_KIND', 'nodeId': str(node.get('id', 'unknown')), 'kind': str(kind)})
             return f'<aside class="target-unmapped" role="note">Unmapped content kind: {escape(str(kind))}</aside>'
+        marker = ' data-ir-id="' + escape(str(node.get('id', '')), quote=True) + '"'
         target = mapping[kind]
         counts[f'{kind}:{target}'] += 1
         node_mappings.append({'nodeId': str(node.get('id', '')), 'sourceRef': node.get('sourceRef'), 'irKind': kind, 'targetComponent': target})
@@ -114,10 +115,10 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
         if target == 'pageHeader':
             eyebrow = escape(str(props.get('eyebrow', '')))
             subtitle = f'<p class="target-eyebrow">{eyebrow}</p>' if eyebrow else ''
-            return f'<header class="target-header"><div class="target-wrap">{subtitle}<h1>{escape(str(data.get("text", "")))}</h1></div></header>'
+            return f'<header class="target-header"{marker}><div class="target-wrap">{subtitle}<h1>{escape(str(data.get("text", "")))}</h1></div></header>'
         if target == 'contentBody':
             # Sanitize again: a CIR file may be modified independently of extraction.
-            return f'<div class="target-body">{rewrite_rich_html(str(props.get("safeHtml", "")), base_url, rules, url_audit, node_id=str(node.get("id", "")))}</div>'
+            return f'<div class="target-body"{marker}>{rewrite_rich_html(str(props.get("safeHtml", "")), base_url, rules, url_audit, node_id=str(node.get("id", "")))}</div>'
         if target == 'media':
             original_src = str(props.get('src', ''))
             # Reuse assets already rewritten by the CIR build, instead of
@@ -136,7 +137,7 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
             if not src:
                 diagnostics.append({'code': 'TARGET_MISSING_IMAGE', 'nodeId': str(node.get('id', ''))})
                 return '<aside class="target-unmapped">Image source unavailable</aside>'
-            return f'<figure class="target-media"><img src="{escape(src, quote=True)}" alt="{alt}" loading="lazy"><figcaption>{caption}</figcaption></figure>'
+            return f'<figure class="target-media"{marker}><img src="{escape(src, quote=True)}" alt="{alt}" loading="lazy"><figcaption>{caption}</figcaption></figure>'
         if target in {'simpleLinks', 'resourceCards'}:
             items = []
             for link in props.get('items', []):
@@ -148,12 +149,12 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
             title = escape(profile.get('labels', {}).get('resourcesHeading', 'Resources'))
             if target == 'simpleLinks':
                 links = ''.join(f'<li><a href="{href}">{label}</a></li>' for label, href in items)
-                return f'<nav class="target-links" aria-label="{title}"><h2>{title}</h2><ul>{links}</ul></nav>'
+                return f'<nav class="target-links"{marker} aria-label="{title}"><h2>{title}</h2><ul>{links}</ul></nav>'
             cards = ''.join(f'<article class="target-resource"><a href="{href}">{label}</a></article>' for label, href in items)
-            return f'<section class="target-resources" aria-label="{title}"><h2>{title}</h2><div class="target-cards">{cards}</div></section>'
+            return f'<section class="target-resources"{marker} aria-label="{title}"><h2>{title}</h2><div class="target-cards">{cards}</div></section>'
         if target == 'reviewNote':
             diagnostics.append({'code': 'TARGET_UNKNOWN_CONTROL', 'nodeId': str(node.get('id', ''))})
-            return '<aside class="target-unmapped" role="note">This source component requires manual mapping.</aside>'
+            return f'<aside class="target-unmapped" role="note"{marker}>This source component requires manual mapping.</aside>'
         raise ValueError('Unreachable target mapping')
 
     body = node_html(ir['tree'])
@@ -177,7 +178,7 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
     return html, css, report
 
 
-def build_target(ir_path: Path, profile_path: Path, out: Path) -> dict:
+def build_target(ir_path: Path, profile_path: Path, out: Path, *, strict: bool = False) -> dict:
     ir_bytes = ir_path.read_bytes()
     ir = json.loads(ir_bytes)
     profile = json.loads(profile_path.read_text(encoding='utf-8'))
@@ -201,5 +202,23 @@ def build_target(ir_path: Path, profile_path: Path, out: Path) -> dict:
             destination = out / dest_path
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, destination)
+    from .validation import ir_to_html
+    output_check = ir_to_html(ir, html, profile, out)
+    input_quality_path = ir_path.parent / 'quality-report.json'
+    source_check = {'status': 'unavailable; IR provenance only'}
+    if input_quality_path.is_file():
+        original = json.loads(input_quality_path.read_text(encoding='utf-8'))
+        if original.get('irSha256') == report['irSha256']:
+            source_check = original.get('sourceToIr', source_check)
+    quality = {'version': '1.0', 'irSha256': report['irSha256'],
+               'sourceToIr': source_check, 'irToHtml': output_check,
+               'passed': output_check['passed'] and source_check.get('passed', True),
+               'visualFidelity': 'not-evaluated-client-target-intent'}
+    (out / 'quality-report.json').write_text(json.dumps(quality, indent=2) + '\n', encoding='utf-8')
+    report['contentAccounting'] = {'passed': quality['passed'],
+                                   'outputSummary': output_check['summary'],
+                                   'qualityReport': 'quality-report.json'}
     (out / 'mapping-report.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
+    if strict and not quality['passed']:
+        raise ValueError('Target content accounting failed; see quality-report.json')
     return report
