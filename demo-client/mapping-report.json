@@ -1,0 +1,22 @@
+{
+  "profileId": "client-resource-portal",
+  "inputFormat": "canonical-page-ir",
+  "targetFormat": "html-css",
+  "mappedComponents": {
+    "hero:pageHeader": 1,
+    "richText:contentBody": 1,
+    "image:media": 1,
+    "linkList:resourceCards": 1,
+    "unknown:reviewNote": 1
+  },
+  "mappingWarnings": [
+    {
+      "code": "TARGET_UNKNOWN_CONTROL",
+      "nodeId": "unknown-part"
+    }
+  ],
+  "sourceFidelity": "not-evaluated-target-redesign-intent",
+  "sharePointSourceReaderUsed": false,
+  "irSha256": "4dfc1b34ad7b7e3eea2411714e86e3ac7a8f69ef5a52e5d8c276a2dc8a8248fd",
+  "inputIr": "demo/page.ir.json"
+}
