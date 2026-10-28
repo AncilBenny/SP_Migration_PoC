@@ -1,6 +1,10 @@
 {
   "source": "poc/samples/modern-demo.json",
   "status": "demo-generated",
+  "webPartsFound": 4,
+  "mappedParts": 3,
+  "unmappedParts": 1,
+  "coveragePercent": 75.0,
   "components": {
     "page": 1,
     "hero": 1,
