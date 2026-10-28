@@ -1,0 +1,19 @@
+{
+  "_sampleProvenance": "Compact valid JSON adapted from Example 3 of the public Microsoft Graph Get sitePage documentation. The documented response has minor illustrative omissions/syntax issues. Not a live tenant export.",
+  "_reference": "https://learn.microsoft.com/en-us/graph/api/sitepage-get?view=graph-rest-1.0",
+  "@odata.type": "microsoft.graph.sitePage",
+  "id": "f45354cb-d634-45df-8b88-2b4e96a1dc45",
+  "name": "autotest Electronic Convertible.aspx",
+  "webUrl": "https://example.org/sites/demo/SitePages/Electronic-Convertible.aspx",
+  "title": "Three-column sample",
+  "canvasLayout": {
+    "horizontalSections": [{
+      "id": "1", "layout": "threeColumns", "emphasis": "neutral",
+      "columns": [
+        {"id": "1", "width": 4, "webparts": [{"@odata.type": "#oneDrive.textWebPart", "id": "f6d0ef70-c977-45e4-ae4b-4676a30d5aab", "innerHtml": "<h1>sample content</h1>"}]},
+        {"id": "2", "width": 4, "webparts": [{"@odata.type": "#oneDrive.textWebPart", "id": "99f59f91-c853-433e-9e75-ad7a32e46106", "innerHtml": "<h1>sample content</h1>"}]},
+        {"id": "3", "width": 4, "webparts": [{"@odata.type": "#oneDrive.textWebPart", "id": "48998492-9633-48b8-a7e9-d293533b4fa6", "innerHtml": "<h1>sample content</h1>"}]}
+      ]
+    }]
+  }
+}
