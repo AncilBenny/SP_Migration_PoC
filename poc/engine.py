@@ -142,6 +142,8 @@ def normalize(page: dict, *, asset_map: dict[str, str] | None = None) -> dict:
     def content_part(part: dict, index: int) -> dict:
         part_id = str(part.get("id") or f"part-{index}")
         source_ref = {"webPartId": part_id, "evidence": "synthetic"}
+        if part.get("_capturePointer"):
+            source_ref["capturePointer"] = str(part["_capturePointer"])
         odata = str(part.get("@odata.type", "")).lower().lstrip("#")
         if odata.endswith("textwebpart") or ("innerHtml" in part and not part.get("webPartType")):
             html = sanitize_html(part.get("innerHtml", ""), base_url)
@@ -201,7 +203,7 @@ def normalize(page: dict, *, asset_map: dict[str, str] | None = None) -> dict:
         diagnostics.append({"severity": "warning", "code": "UNSUPPORTED_VERTICAL_SECTION", "message": "Right-side vertical section preserved only as a warning in this PoC"})
     if not page["canvasLayout"].get("horizontalSections"):
         diagnostics.append({"severity": "warning", "code": "NO_HORIZONTAL_SECTIONS", "message": "No horizontal sections available; this does not establish an empty source page"})
-    return {"schemaVersion": "0.1.0", "source": {"platform": "sharepoint", "pageModel": "modern", "url": base_url or "https://example.org/unknown", "capturedAt": "2026-10-28T00:00:00Z", "captureMethod": "manual-fixture", "evidenceConfidence": "synthetic"}, "page": {"id": page_id, "title": str(page.get("title") or "Untitled"), "description": str(page.get("description") or "")}, "tree": tree, "assets": assets, "diagnostics": diagnostics, "extensions": {"demo": {"counts": dict(counts), "note": "Adapted public documentation fixture; not a live SharePoint export"}}}
+    return {"schemaVersion": "0.1.0", "source": {"platform": "sharepoint", "pageModel": "modern", "url": base_url or "https://example.org/unknown", "capturedAt": "2026-10-28T00:00:00Z", "captureMethod": str(page.get("_captureMethod") or "manual-fixture"), "evidenceConfidence": str(page.get("_captureConfidence") or "synthetic")}, "page": {"id": page_id, "title": str(page.get("title") or "Untitled"), "description": str(page.get("description") or "")}, "tree": tree, "assets": assets, "diagnostics": diagnostics, "extensions": {"demo": {"counts": dict(counts), "note": "Adapted public documentation fixture; not a live SharePoint export"}}}
 
 
 def render_node(node: dict) -> str:
@@ -246,7 +248,12 @@ def build(source: Path, out: Path, assets_dir: Path | None = None, *, style_mode
         raise ValueError("style_mode must be structural or demo")
     doc = json.loads(source.read_text(encoding="utf-8"))
     mappings = doc.pop("_assetMap", {})
+    canvas_diagnostics = []
+    if isinstance(doc.get("ListItemAllFields"), dict):
+        from .canvas import decode_modern_canvas
+        doc, canvas_diagnostics = decode_modern_canvas(doc)
     ir = normalize(doc, asset_map=mappings)
+    ir["diagnostics"].extend(canvas_diagnostics)
     out.mkdir(parents=True, exist_ok=True)
     (out / "assets").mkdir(exist_ok=True)
     if assets_dir:
