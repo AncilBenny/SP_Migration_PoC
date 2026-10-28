@@ -12,6 +12,28 @@ class ClassifierResearchTests(unittest.TestCase):
         self.assertEqual((r["status"], r["pageFamily"], r["adapter"]),
                          ("confirmed", "modern", "modern-graph"))
 
+    def test_graph_type_without_hash_matches_microsoft_example(self):
+        r = classify({"deployment": "online",
+                      "graphSitePage": {"@odata.type": "microsoft.graph.sitePage",
+                                        "canvasLayout": {"horizontalSections": []}}})
+        self.assertEqual((r["status"], r["adapter"]),
+                         ("confirmed", "modern-graph"))
+
+    def test_graph_type_metadata_suppressed_verified_endpoint(self):
+        r = classify({"deployment": "online",
+                      "graphSitePageEndpointVerified": True,
+                      "graphSitePage": {"id": "synthetic-page",
+                                        "canvasLayout": {"horizontalSections": []}}})
+        self.assertEqual(r["pageFamily"], "modern")
+
+    def test_graph_without_type_unverified_endpoint_remains_unknown(self):
+        r = classify({"graphSitePage": {"id": "synthetic-page",
+                                       "canvasLayout": {}}})
+        self.assertEqual(r["pageFamily"], "unknown")
+
+    def test_graph_verified_endpoint_requires_payload(self):
+        r = classify({"graphSitePageEndpointVerified": True, "graphSitePage": {}})
+        self.assertEqual(r["pageFamily"], "unknown")
     def test_modern_blank_canvas_is_not_empty_page_claim(self):
         r = classify({"graphSitePage": {"@odata.type": "#microsoft.graph.sitePage"}})
         self.assertEqual(r["pageFamily"], "modern")
