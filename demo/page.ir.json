@@ -1,0 +1,235 @@
+{
+  "schemaVersion": "0.1.0",
+  "source": {
+    "platform": "sharepoint",
+    "pageModel": "modern",
+    "url": "https://example.org/sites/demo/SitePages/Community-Health.aspx",
+    "capturedAt": "2026-10-28T00:00:00Z",
+    "captureMethod": "manual-fixture",
+    "evidenceConfidence": "synthetic"
+  },
+  "page": {
+    "id": "research-demo-001",
+    "title": "Community health resources",
+    "description": "An offline example of reusable page components extracted from a Graph-shaped SharePoint modern page."
+  },
+  "tree": {
+    "id": "research-demo-001-root",
+    "kind": "page",
+    "children": [
+      {
+        "id": "title-area",
+        "kind": "hero",
+        "props": {
+          "eyebrow": "PUBLIC SERVICES",
+          "variant": "colorBlock"
+        },
+        "content": {
+          "text": "Community health resources"
+        },
+        "fidelity": {
+          "status": "approximate",
+          "reason": "Title area layout simplified"
+        }
+      },
+      {
+        "id": "section-1",
+        "kind": "section",
+        "order": 0,
+        "props": {
+          "emphasis": "none"
+        },
+        "children": [
+          {
+            "id": "columns-0",
+            "kind": "columns",
+            "children": [
+              {
+                "id": "col-0-0",
+                "kind": "column",
+                "order": 0,
+                "layout": {
+                  "widthFraction": 0.6666666666666666
+                },
+                "children": [
+                  {
+                    "id": "intro-text",
+                    "kind": "richText",
+                    "props": {
+                      "safeHtml": "<h2>Find information you can use</h2><p>Explore clear, accessible guidance and practical resources for your community.</p><p>This page is reconstructed from a <strong>portable component model</strong>, not a live SharePoint runtime.</p><ul><li>Preserved headings and readable content</li><li>Responsive two-column layout</li><li>Reusable content and image blocks</li></ul>"
+                    },
+                    "sourceRef": {
+                      "webPartId": "intro-text",
+                      "evidence": "synthetic"
+                    },
+                    "fidelity": {
+                      "status": "approximate",
+                      "reason": "Safe HTML subset; styling and inline controls are not reproduced"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "col-0-1",
+                "kind": "column",
+                "order": 1,
+                "layout": {
+                  "widthFraction": 0.3333333333333333
+                },
+                "children": [
+                  {
+                    "id": "intro-image",
+                    "kind": "image",
+                    "content": {
+                      "assetId": "asset-intro-image",
+                      "altText": "Illustration of a community health resource card",
+                      "caption": "Illustrative demo asset, not extracted from SharePoint"
+                    },
+                    "props": {
+                      "src": "assets/health.svg"
+                    },
+                    "sourceRef": {
+                      "webPartId": "intro-image",
+                      "evidence": "synthetic",
+                      "webPartType": "d1d91016-032f-456d-98a4-721247c305e8"
+                    },
+                    "fidelity": {
+                      "status": "approximate",
+                      "reason": "Source cropping and rendering options not reproduced"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "section-2",
+        "kind": "section",
+        "order": 1,
+        "props": {
+          "emphasis": "soft"
+        },
+        "children": [
+          {
+            "id": "columns-1",
+            "kind": "columns",
+            "children": [
+              {
+                "id": "col-1-0",
+                "kind": "column",
+                "order": 0,
+                "layout": {
+                  "widthFraction": 1
+                },
+                "children": [
+                  {
+                    "id": "links-part",
+                    "kind": "linkList",
+                    "props": {
+                      "items": [
+                        {
+                          "label": "SharePoint sitePage API documentation",
+                          "url": "https://learn.microsoft.com/en-us/graph/api/sitepage-get?view=graph-rest-1.0"
+                        },
+                        {
+                          "label": "CDPH public website",
+                          "url": "https://www.cdph.ca.gov/"
+                        },
+                        {
+                          "label": "Read the CIR JSON",
+                          "url": "#data-model"
+                        }
+                      ]
+                    },
+                    "sourceRef": {
+                      "webPartId": "links-part",
+                      "evidence": "synthetic",
+                      "webPartType": "c70391ea-0b10-4ee9-b2b4-006d3fcad0cd"
+                    },
+                    "fidelity": {
+                      "status": "approximate",
+                      "reason": "Quick Links visual variants not reproduced"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "section-3",
+        "kind": "section",
+        "order": 2,
+        "props": {
+          "emphasis": "none"
+        },
+        "children": [
+          {
+            "id": "columns-2",
+            "kind": "columns",
+            "children": [
+              {
+                "id": "col-2-0",
+                "kind": "column",
+                "order": 0,
+                "layout": {
+                  "widthFraction": 1
+                },
+                "children": [
+                  {
+                    "id": "unknown-part",
+                    "kind": "unknown",
+                    "props": {
+                      "sourceType": "00000000-0000-0000-0000-000000000099"
+                    },
+                    "sourceRef": {
+                      "webPartId": "unknown-part",
+                      "evidence": "synthetic",
+                      "webPartType": "00000000-0000-0000-0000-000000000099"
+                    },
+                    "fidelity": {
+                      "status": "unsupported",
+                      "reason": "No safe semantic mapping"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "assets": [
+    {
+      "id": "asset-intro-image",
+      "kind": "image",
+      "originalUrl": "https://example.org/sites/demo/SiteAssets/health.svg",
+      "resolvedUrl": "assets/health.svg",
+      "status": "resolved",
+      "altText": "Illustration of a community health resource card"
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "UNMAPPED_WEBPART",
+      "nodeId": "unknown-part",
+      "message": "Unsupported or unrecognized web part: 00000000-0000-0000-0000-000000000099"
+    }
+  ],
+  "extensions": {
+    "demo": {
+      "counts": {
+        "richText": 1,
+        "image": 1,
+        "linkList": 1,
+        "unknown": 1
+      },
+      "note": "Adapted public documentation fixture; not a live SharePoint export"
+    }
+  }
+}
