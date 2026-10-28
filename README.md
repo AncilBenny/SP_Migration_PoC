@@ -54,3 +54,14 @@ No source SharePoint access or CDPH live stylesheet analysis has been completed.
 - [Four synthetic source-to-CIR traceability cases](examples/research/three-family-traceability.synthetic.json): modern, classic Wiki, classic Web Part and publishing examples. Not real tenant content.
 
 **CI status:** Research checks have reported a failure; remote job logs were unavailable during investigation. Do not treat automated checks as passing until a successful run is visible.
+
+
+## Public-only evidence research (no SharePoint account required)
+
+- [Public SharePoint source + CDPH website evidence](docs/research/13-public-only-source-and-website-evidence.md) — directly inspected public Wiki fixture, Modern CanvasContent1 fixture, Web Part Page source template, Publishing ASPX page and layout, and live CDPH HIE pages.
+- [Derived evidence manifest](examples/research/public-evidence-derived.json) — reproducible URLs, GitHub source blob hashes, measured structural facts and explicit limitations; no copyrighted page bodies copied.
+- [Public-evidence research checks](tests/test_public_evidence.py) — guards against treating public HTML as confirmed SharePoint and against combining unrelated page+layout sources.
+
+**Access boundary:** Modern SharePoint Online usually requires authentication and cannot be treated as a public anonymous site. The initial PoC can use public source files and open-source fixtures. This research does not require a SharePoint plugin or access to a private tenant. The actual www.cdph.ca.gov pages still returned HTTP 502 during direct fetches; hie.cdph.ca.gov pages were viewable but their backend is unclassified.
+
+**Evidence status:** Public real source files and visible public content found for architecture study; no verified same-site source + stylesheet + rendered output triplet, and no source-to-target migration run yet.
