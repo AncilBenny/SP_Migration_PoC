@@ -44,3 +44,13 @@ The input JSON is **synthetic**. The spike demonstrates cautious classification 
 ## Research boundaries
 
 No source SharePoint access or CDPH live stylesheet analysis has been completed. Any sensitive source capture must be authorized, restricted, sanitized and kept out of this repo. No production credentials, unredacted private content or source JavaScript should be committed.
+
+
+## Phase 3 field-level research
+
+- [Three-family source field extraction blueprint](docs/research/10-three-family-source-field-blueprint.md): Graph properties, 12-unit grid, classic WikiField and zone definitions, PublishingPageContent/PageLayout.
+- [CSS / layout / shared site-shell investigation](docs/research/11-style-css-site-shell-vs-page.md): where to find classic theme CSS, how to observe responsive design and deduplicate templates.
+- [Latest findings and CIR revision gates](docs/research/12-findings-and-ir-revision-gates.md): concrete schema gaps and real-sample evidence needed.
+- [Four synthetic source-to-CIR traceability cases](examples/research/three-family-traceability.synthetic.json): modern, classic Wiki, classic Web Part and publishing examples. Not real tenant content.
+
+**CI status:** Research checks have reported a failure; remote job logs were unavailable during investigation. Do not treat automated checks as passing until a successful run is visible.
