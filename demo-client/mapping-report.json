@@ -1,0 +1,85 @@
+{
+  "profileId": "client-resource-portal",
+  "inputFormat": "canonical-page-ir",
+  "targetFormat": "html-css",
+  "mappedComponents": {
+    "hero:pageHeader": 1,
+    "richText:contentBody": 1,
+    "image:media": 1,
+    "linkList:resourceCards": 1,
+    "unknown:reviewNote": 1
+  },
+  "nodeMappings": [
+    {
+      "nodeId": "title-area",
+      "sourceRef": null,
+      "irKind": "hero",
+      "targetComponent": "pageHeader"
+    },
+    {
+      "nodeId": "intro-text",
+      "sourceRef": {
+        "webPartId": "intro-text",
+        "evidence": "synthetic"
+      },
+      "irKind": "richText",
+      "targetComponent": "contentBody"
+    },
+    {
+      "nodeId": "intro-image",
+      "sourceRef": {
+        "webPartId": "intro-image",
+        "evidence": "synthetic",
+        "webPartType": "d1d91016-032f-456d-98a4-721247c305e8"
+      },
+      "irKind": "image",
+      "targetComponent": "media"
+    },
+    {
+      "nodeId": "links-part",
+      "sourceRef": {
+        "webPartId": "links-part",
+        "evidence": "synthetic",
+        "webPartType": "c70391ea-0b10-4ee9-b2b4-006d3fcad0cd"
+      },
+      "irKind": "linkList",
+      "targetComponent": "resourceCards"
+    },
+    {
+      "nodeId": "unknown-part",
+      "sourceRef": {
+        "webPartId": "unknown-part",
+        "evidence": "synthetic",
+        "webPartType": "00000000-0000-0000-0000-000000000099"
+      },
+      "irKind": "unknown",
+      "targetComponent": "reviewNote"
+    }
+  ],
+  "urlRewrites": [],
+  "assetRewrites": [
+    {
+      "nodeId": "intro-image",
+      "originalPath": "assets/health.svg",
+      "targetPath": "media/health.svg"
+    }
+  ],
+  "mappingWarnings": [
+    {
+      "code": "TARGET_UNKNOWN_CONTROL",
+      "nodeId": "unknown-part"
+    }
+  ],
+  "sourceFidelity": "not-evaluated-target-redesign-intent",
+  "sharePointSourceReaderUsed": false,
+  "irSha256": "4dfc1b34ad7b7e3eea2411714e86e3ac7a8f69ef5a52e5d8c276a2dc8a8248fd",
+  "inputIr": "demo/page.ir.json",
+  "contentAccounting": {
+    "passed": true,
+    "outputSummary": {
+      "preserved": 4,
+      "needs-review": 1
+    },
+    "qualityReport": "quality-report.json"
+  }
+}

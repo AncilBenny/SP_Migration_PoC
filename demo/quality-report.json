@@ -1,0 +1,90 @@
+{
+  "version": "1.0",
+  "irSha256": "4dfc1b34ad7b7e3eea2411714e86e3ac7a8f69ef5a52e5d8c276a2dc8a8248fd",
+  "sourceToIr": {
+    "passed": true,
+    "summary": {
+      "preserved": 4,
+      "needs-review": 1
+    },
+    "items": [
+      {
+        "nodeId": "title-area",
+        "kind": "pageTitle",
+        "status": "preserved"
+      },
+      {
+        "nodeId": "intro-text",
+        "kind": "richText",
+        "status": "preserved",
+        "reason": ""
+      },
+      {
+        "nodeId": "intro-image",
+        "kind": "image",
+        "status": "preserved",
+        "reason": ""
+      },
+      {
+        "nodeId": "links-part",
+        "kind": "linkList",
+        "status": "preserved",
+        "reason": ""
+      },
+      {
+        "nodeId": "unknown-part",
+        "kind": "unknown",
+        "status": "needs-review",
+        "reason": "Unmapped source control preserved as explicit unknown"
+      }
+    ],
+    "scope": "Modern public fixture field/semantic checks; not computed CSS or visual fidelity"
+  },
+  "irToHtml": {
+    "passed": true,
+    "summary": {
+      "preserved": 4,
+      "needs-review": 1
+    },
+    "items": [
+      {
+        "nodeId": "title-area",
+        "kind": "hero",
+        "status": "preserved",
+        "reason": ""
+      },
+      {
+        "nodeId": "intro-text",
+        "kind": "richText",
+        "status": "preserved",
+        "reason": ""
+      },
+      {
+        "nodeId": "intro-image",
+        "kind": "image",
+        "status": "preserved",
+        "reason": ""
+      },
+      {
+        "nodeId": "links-part",
+        "kind": "linkList",
+        "status": "preserved",
+        "reason": ""
+      },
+      {
+        "nodeId": "unknown-part",
+        "kind": "unknown",
+        "status": "needs-review",
+        "reason": "Explicit placeholder; original behavior/content not migrated"
+      }
+    ],
+    "unverified": [
+      "Computed CSS fidelity",
+      "JavaScript behavior",
+      "Remote URL accessibility",
+      "Pixel-level visual comparison"
+    ]
+  },
+  "passed": true,
+  "visualFidelity": "unverified-no-matched-source-baseline"
+}

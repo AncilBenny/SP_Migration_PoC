@@ -1,0 +1,48 @@
+{
+  "source": "poc/samples/modern-demo.json",
+  "status": "demo-generated",
+  "styleMode": "structural",
+  "visualFidelity": "unverified-no-rendered-source-baseline",
+  "webPartsFound": 4,
+  "mappedParts": 3,
+  "unmappedParts": 1,
+  "coveragePercent": 75.0,
+  "components": {
+    "page": 1,
+    "hero": 1,
+    "section": 3,
+    "columns": 3,
+    "column": 4,
+    "richText": 1,
+    "image": 1,
+    "linkList": 1,
+    "unknown": 1
+  },
+  "assets": 1,
+  "warnings": [
+    {
+      "severity": "warning",
+      "code": "UNMAPPED_WEBPART",
+      "nodeId": "unknown-part",
+      "message": "Unsupported or unrecognized web part: 00000000-0000-0000-0000-000000000099"
+    }
+  ],
+  "limitations": [
+    "Public documentation-adapted fixture, not an authenticated tenant extraction",
+    "Modern Graph canvas subset only",
+    "Source screenshots/CSS unavailable; generated styling is not a visual replica",
+    "No dynamic behavior migration"
+  ],
+  "contentAccounting": {
+    "passed": true,
+    "sourceSummary": {
+      "preserved": 4,
+      "needs-review": 1
+    },
+    "outputSummary": {
+      "preserved": 4,
+      "needs-review": 1
+    },
+    "qualityReport": "quality-report.json"
+  }
+}
