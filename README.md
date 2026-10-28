@@ -33,6 +33,12 @@ The two input samples are **public-documentation-adapted examples**. The schema 
 
 A public PnP CLI fixture and public classic ASPX source examples are discussed in the companion research PR for later Classic Content and Publishing adapters.
 
+## Verified local demo result
+
+The showcase contains **4 source web parts**, of which **3 map** to CIR controls (rich text, image and Quick Links) and **1 remains explicitly unsupported** (75% fixture mapping coverage). This is not an accuracy score or a claim about real SharePoint sites. The test suite has **8 passing unit tests locally**, and a local browser render confirmed the header, links and bundled illustration. GitHub-hosted CI has reported a failure with missing remote logs; it is not confirmed passing.
+
+The draft [CIR v0.1 JSON Schema](schema/page.ir.schema.json) is included for structural review.
+
 ## PoC boundaries / next steps
 
 1. The Modern reader **does not** support full rich-text semantics, custom SPFx parts, inline standard parts, vertical sections, live data-bound parts, authentication, page collections, or perfect site style fidelity. The demo reports unsupported parts.
