@@ -1,5 +1,7 @@
 # Research 04 — Execution backlog, site sampling, and acceptance
 
+> **MVP scope revision (2026-10-28):** Focus only on (1) Modern Site Pages, (2) grouped Classic Wiki/Web Part Pages and (3) Classic Publishing/Website Pages. See [the authoritative scope decision](09-mvp-scope-three-page-families.md). Broader items below (on-prem versions, unusual custom parts, multilingual/complex data) are optional research references, **not implementation commitments**.
+
 Status: research plan v0.1; no authenticated tenant export performed.
 
 ## Research work packages
@@ -52,13 +54,13 @@ No deployment, authenticated tenant scraping, privileged API access, bulk migrat
 
 P0. Obtain one authorized sample export (modern or classic) and a representative rendered screenshot.
 
-P0. Confirm whether the intended source estate is SharePoint Online modern, SharePoint classic, on-premises, or mixed; first adapters depend on this.
+P0. Confirm one authorized SharePoint Online example each for Modern, Classic Content (Wiki/Web Part), and Publishing. On-premises editions are deferred.
 
 P1. Implement safe capture bundle and inspect parts/types/assets/links on 3 sample pages.
 
 P1. Refine CIR against real exports, document lossy mapping, test schema and validate a simple output.
 
-P2. Build dynamic mappings, style-token extractor, templates and accessibility/visual QA.
+P2. Build common style-token/layout extraction and accessibility/visual QA; **dynamic list/search reimplementation is deferred**, but dependencies must be flagged.
 
 ## Required correctness checks
 
