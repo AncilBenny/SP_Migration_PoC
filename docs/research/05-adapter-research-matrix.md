@@ -1,5 +1,7 @@
 # Research 05 — Separate handling by SharePoint family and deployment
 
+> **Scope update:** This matrix preserves broader API research, but the MVP will use **three grouped readers only**: Modern; Classic Content (Wiki/WebPart strategies); Publishing/Website. On-prem, Blog, arbitrary ASPX and custom apps are deferred. [MVP scope decision](09-mvp-scope-three-page-families.md).
+
 Date: 2026-10-28. Scope: research, not an implemented connector. No authenticated tenant data has been collected.
 
 ## Core decision
