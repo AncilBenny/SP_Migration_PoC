@@ -48,7 +48,17 @@ def classify(evidence: dict[str, Any]) -> dict[str, Any]:
         deployment = "unknown"
 
     graph = evidence.get("graphSitePage")
-    if isinstance(graph, dict) and graph.get("@odata.type", "").lower() == "#microsoft.graph.sitepage":
+    # Microsoft examples use both "microsoft.graph.sitePage" and
+    # "#microsoft.graph.sitePage". A verified typed endpoint response may
+    # omit @odata.type when OData metadata is suppressed.
+    graph_type = graph.get("@odata.type", "") if isinstance(graph, dict) else ""
+    normalized_graph_type = (graph_type.lstrip("#").lower()
+                             if isinstance(graph_type, str) else "")
+    graph_endpoint_verified = evidence.get("graphSitePageEndpointVerified") is True
+    if isinstance(graph, dict) and (
+        normalized_graph_type == "microsoft.graph.sitepage"
+        or (graph_endpoint_verified and bool(graph))
+    ):
         candidates.add("modern")
         findings.append({"source": "graph-sitepage", "family": "modern",
                          "strength": "source-api"})
