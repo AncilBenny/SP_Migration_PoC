@@ -6,7 +6,7 @@
   "webPartsFound": 4,
   "mappedParts": 3,
   "unmappedParts": 1,
-  "coveragePercent": 75,
+  "coveragePercent": 75.0,
   "components": {
     "page": 1,
     "hero": 1,
@@ -32,5 +32,17 @@
     "Modern Graph canvas subset only",
     "Source screenshots/CSS unavailable; generated styling is not a visual replica",
     "No dynamic behavior migration"
-  ]
+  ],
+  "contentAccounting": {
+    "passed": true,
+    "sourceSummary": {
+      "preserved": 4,
+      "needs-review": 1
+    },
+    "outputSummary": {
+      "preserved": 4,
+      "needs-review": 1
+    },
+    "qualityReport": "quality-report.json"
+  }
 }
