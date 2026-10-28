@@ -4,6 +4,8 @@ A small offline vertical slice for **one source family: Modern SharePoint Site P
 
 **[Read the fidelity-first architecture and destination-mapping contract](docs/architecture/03-fidelity-first-intermediate-and-mappings.md).**
 
+**[Next milestone: prove same-page content, layout, style and behavior fidelity](docs/roadmap/01-single-page-visual-fidelity-gate.md)** using only publicly available evidence. We will not claim visual parity from an unpaired Graph fixture and rendered website.
+
 ## Demo (Python 3.10+, no dependencies or SharePoint login)
 
 ```sh
