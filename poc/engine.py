@@ -263,6 +263,8 @@ def build(source: Path, out: Path, assets_dir: Path | None = None) -> dict:
         for child in n.get("children", []):
             walk(child)
     walk(ir["tree"])
-    report = {"source": str(source), "status": "demo-generated", "components": dict(counts), "assets": len(ir["assets"]), "warnings": ir["diagnostics"], "limitations": ["Public documentation-adapted fixture, not an authenticated tenant extraction", "Modern Graph canvas subset only", "No pixel-perfect or dynamic behavior migration"]}
+    total_webparts = sum(len(col.get("webparts") or []) for section in doc["canvasLayout"].get("horizontalSections", []) for col in section.get("columns") or [])
+    supported = sum(counts[k] for k in ("richText", "image", "linkList"))
+    report = {"source": str(source), "status": "demo-generated", "webPartsFound": total_webparts, "mappedParts": supported, "unmappedParts": counts["unknown"], "coveragePercent": round(100 * supported / total_webparts, 1) if total_webparts else 100.0, "components": dict(counts), "assets": len(ir["assets"]), "warnings": ir["diagnostics"], "limitations": ["Public documentation-adapted fixture, not an authenticated tenant extraction", "Modern Graph canvas subset only", "No pixel-perfect or dynamic behavior migration"]}
     (out / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     return report
