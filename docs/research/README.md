@@ -54,3 +54,11 @@ Obtain a read-only authorized modern sitePage JSON and a redacted classic wiki/w
 - [Four synthetic source-to-CIR traceability cases](../../examples/research/three-family-traceability.synthetic.json) cover all three families (Classic has separate Wiki/WebPart cases).
 - Offline classifier research now accepts Graph sitePage OData type with or without a leading #, or source-verified typed responses where OData metadata was suppressed.
 - Automated GitHub Research checks currently report failure. GitHub log retrieval returned a missing-log error, so the failure reason is **not verified** and CI is not yet considered passing.
+
+
+## Phase 4 — public-only source evidence
+
+13. [Public SharePoint source files and real CDPH website content](13-public-only-source-and-website-evidence.md) — **primary evidence log** from publicly committed ASPX files and PnP fixtures plus live accessible CDPH HIE pages. Explicitly distinguishes template/fixture/page instance/rendered-only observations.
+- [Derived public evidence inventory](../../examples/research/public-evidence-derived.json) and [integrity tests](../../tests/test_public_evidence.py).
+- This public-only path requires no SharePoint plugin or tenant access. Graph modern pages require auth to inspect live authoring data, so public fixtures support the initial PoC while private-tenant end-to-end fidelity remains unverified.
+- CDPH main site direct fetch returned 502. Other CDPH subdomains can be inspected as ordinary public web content, **not** assumed SharePoint.
