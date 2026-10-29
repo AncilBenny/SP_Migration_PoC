@@ -12,94 +12,10 @@ import json
 from pathlib import Path
 import re
 import shutil
-from urllib.parse import urljoin, urlsplit
+from .richtext import ALLOWED_TAGS, VOID_TAGS, safe_url, sanitize_html, sanitize_with_audit
 
 IMAGE_ID = "d1d91016-032f-456d-98a4-721247c305e8"
 QUICKLINKS_ID = "c70391ea-0b10-4ee9-b2b4-006d3fcad0cd"
-ALLOWED_TAGS = {"p", "h1", "h2", "h3", "h4", "h5", "h6", "strong", "b", "em", "i", "ul", "ol", "li", "a", "br", "blockquote", "code", "pre", "table", "thead", "tbody", "tr", "td", "th"}
-VOID_TAGS = {"br"}
-
-
-def safe_url(value: str, base_url: str = "") -> str:
-    """Reject executable/opaque schemes; resolve ordinary SharePoint-relative URLs."""
-    if not isinstance(value, str) or not value or any(ord(ch) < 32 for ch in value):
-        return ""
-    value = value.strip()
-    parts = urlsplit(value)
-    if parts.scheme and parts.scheme.lower() not in {"https", "http", "mailto"}:
-        return ""
-    if value.startswith("//"):
-        return ""
-    if parts.scheme:
-        return value
-    if value.startswith("#"):
-        return value
-    if not base_url:
-        return value
-    if not urlsplit(base_url).scheme in {"http", "https"}:
-        return ""
-    return urljoin(base_url, value)
-
-
-class CleanHTML(HTMLParser):
-    """Small allow-list HTML serializer; never echo executable markup."""
-    def __init__(self, base_url: str = ""):
-        super().__init__(convert_charrefs=True)
-        self.base_url = base_url
-        self.output: list[str] = []
-        self.stack: list[str] = []
-        self.blocked = 0
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]):
-        if tag in {"script", "style", "iframe", "object", "svg", "form"}:
-            self.blocked += 1
-            return
-        if self.blocked or tag not in ALLOWED_TAGS:
-            return
-        attrs = dict(attrs)
-        extra = ""
-        if tag == "a":
-            href = safe_url(attrs.get("href", ""), self.base_url)
-            if href:
-                extra = f' href="{escape(href, quote=True)}"'
-        self.output.append(f"<{tag}{extra}>")
-        if tag not in VOID_TAGS:
-            self.stack.append(tag)
-
-    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]):
-        self.handle_starttag(tag, attrs)
-        # A self-closing blocked element must not hide subsequent authored text.
-        if tag in {"script", "style", "iframe", "object", "svg", "form"}:
-            self.handle_endtag(tag)
-
-    def handle_endtag(self, tag: str):
-        if tag in {"script", "style", "iframe", "object", "svg", "form"}:
-            if self.blocked:
-                self.blocked -= 1
-            return
-        if self.blocked or tag not in self.stack:
-            return
-        while self.stack:
-            top = self.stack.pop()
-            self.output.append(f"</{top}>")
-            if top == tag:
-                break
-
-    def handle_data(self, data: str):
-        if not self.blocked:
-            self.output.append(escape(data))
-
-    def get_html(self) -> str:
-        while self.stack:
-            self.output.append(f"</{self.stack.pop()}>")
-        return "".join(self.output)
-
-
-def sanitize_html(raw: str, base_url: str = "") -> str:
-    parser = CleanHTML(base_url)
-    parser.feed(raw if isinstance(raw, str) else "")
-    parser.close()
-    return parser.get_html()
 
 
 def processed_value(data: dict, category: str, key: str) -> str:
@@ -175,7 +91,18 @@ def normalize(page: dict, *, asset_map: dict[str, str] | None = None) -> dict:
             source_ref["capturePointer"] = str(part["_capturePointer"])
         odata = str(part.get("@odata.type", "")).lower().lstrip("#")
         if odata.endswith("textwebpart") or ("innerHtml" in part and not part.get("webPartType")):
-            html = sanitize_html(part.get("innerHtml", ""), base_url)
+            clean = sanitize_with_audit(part.get("innerHtml", ""), base_url)
+            html = clean.html
+            if clean.kept_inline_images:
+                diagnostics.append({"severity": "warning", "code": "INLINE_IMAGE_ASSET_REVIEW",
+                                    "nodeId": part_id, "message": "Inline image HTML preserved, but original asset download and rights require review",
+                                    "details": {"imageCount": clean.kept_inline_images}})
+            if clean.changed_for_safety:
+                diagnostics.append({"severity": "warning", "code": "RICH_TEXT_CLEANUP_REVIEW",
+                                    "nodeId": part_id, "message": "Rich text sanitization removed unsupported markup, attributes or URLs",
+                                    "details": {"removedElements": clean.removed_elements,
+                                                "removedAttributes": clean.removed_attributes,
+                                                "rejectedUrls": clean.rejected_urls}})
             counts["richText"] += 1
             return {"id": part_id, "kind": "richText", "props": {"safeHtml": html}, "sourceRef": source_ref, "fidelity": {"status": "approximate", "reason": "Safe HTML subset; styling and inline controls are not reproduced"}}
 
@@ -290,7 +217,8 @@ def normalize(page: dict, *, asset_map: dict[str, str] | None = None) -> dict:
     if not horizontal and vertical is None:
         diagnostics.append({"severity": "warning", "code": "NO_SECTIONS",
                             "message": "No sections available; this does not establish an empty source page"})
-    return {"schemaVersion": "0.1.0", "source": {"platform": "sharepoint", "pageModel": "modern", "url": base_url or "https://example.org/unknown", "capturedAt": "2026-10-28T00:00:00Z", "captureMethod": str(page.get("_captureMethod") or "manual-fixture"), "evidenceConfidence": str(page.get("_captureConfidence") or "synthetic")}, "page": {"id": page_id, "title": str(page.get("title") or "Untitled"), "description": str(page.get("description") or "")}, "tree": tree, "assets": assets, "diagnostics": diagnostics, "extensions": {"demo": {"counts": dict(counts), "note": "Adapted public documentation fixture; not a live SharePoint export"}}}
+    ir = {"schemaVersion": "0.2.0", "source": {"platform": "sharepoint", "pageModel": "modern", "url": base_url or "https://example.org/unknown", "capturedAt": "2026-10-28T00:00:00Z", "captureMethod": str(page.get("_captureMethod") or "manual-fixture"), "evidenceConfidence": str(page.get("_captureConfidence") or "synthetic")}, "page": {"id": page_id, "title": str(page.get("title") or "Untitled"), "description": str(page.get("description") or "")}, "tree": tree, "assets": assets, "diagnostics": diagnostics, "extensions": {"demo": {"counts": dict(counts), "note": "Adapted public documentation fixture; not a live SharePoint export"}}}
+    return ir
 
 
 def render_node(node: dict) -> str:
@@ -317,7 +245,7 @@ def render_node(node: dict) -> str:
         fraction = float(node.get("layout", {}).get("widthFraction", 1))
         return f'<div class="column" style="--share:{max(0.01,min(1,fraction)):.6f}">{children}</div>'
     if kind == "richText":
-        return f'<div class="rich-text"{marker}>{node.get("props", {}).get("safeHtml", "")}</div>'
+        return f'<div class="rich-text"{marker}>{sanitize_html(node.get("props", {}).get("safeHtml", ""))}</div>'
     if kind == "image":
         c = node.get("content") or {}
         src = escape(node.get("props", {}).get("src", ""), quote=True)
@@ -347,6 +275,8 @@ def build(source: Path, out: Path, assets_dir: Path | None = None, *, style_mode
         doc, canvas_diagnostics = decode_modern_canvas(doc)
     ir = normalize(doc, asset_map=mappings)
     ir["diagnostics"].extend(canvas_diagnostics)
+    from .contracts import validate_ir
+    validate_ir(ir)
     from .validation import source_to_ir, ir_to_html
     from hashlib import sha256
     source_audit = source_to_ir(doc, ir)
