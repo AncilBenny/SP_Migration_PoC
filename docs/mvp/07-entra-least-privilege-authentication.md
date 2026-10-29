@@ -16,15 +16,15 @@ Verified primary sources:
 
 1. An authorized administrator separately registers a **single-tenant public desktop application** with Mobile/Desktop redirect URI http://localhost and approved Graph delegated read permissions. The installed client must **not** have a client secret. Consent, site grants and admin policies are outside this MVP CLI.
 2. The operator sets MIGRATION_ENTRA_TENANT_ID and MIGRATION_ENTRA_CLIENT_ID **in their local environment**, never in the source fixture, migration profile, output report or CLI flags. Both must be UUIDs. A login hint may optionally be selected through a named environment variable.
-3. \`python -m poc graph-auth-check\` only validates the local configuration and returns permissionApproved:false, graphAuthorization:not-verified, and selectedResourceGrant:not-verified. It does not contact Entra/Graph or disclose tenant/account information.
-4. \`graph-stage --auth-mode entra-delegated\` lazily loads the optional MSAL Python library, uses an in-memory cache and system-browser PKCE login, and calls acquire_token_silent_with_error for subsequent requests. Multiple cached accounts are **rejected** until one is explicitly selected. --silent-only denies interactive login.
+3. `python -m poc graph-auth-check` only validates the local configuration and returns permissionApproved:false, graphAuthorization:not-verified, and selectedResourceGrant:not-verified. It does not contact Entra/Graph or disclose tenant/account information.
+4. `graph-stage --auth-mode entra-delegated` lazily loads the optional MSAL Python library, uses an in-memory cache and system-browser PKCE login, and calls acquire_token_silent_with_error for subsequent requests. Multiple cached accounts are **rejected** until one is explicitly selected. --silent-only denies interactive login.
 5. Only Files.Read, Sites.Selected, and Files.SelectedOperations.Selected can be requested. No read-all, write, full-control, or .default scopes are allowed by this adapter. Selected scopes require separate resource grants; these checks are not a substitute for service-side authorization.
 6. The existing GraphBinaryFetcher sends bearer credentials **only** to graph.microsoft.com. Temporary Graph download URLs are fetched **without** the token, on an explicitly allowlisted HTTPS hostname. No bearer, signed URL or raw MSAL errors go into reports. Graph errors have stable redacted diagnostics.
 7. Binary staging, integrity verification and independently verified local publication remain separate operations; local stored bytes are not proof that a production URL is reachable.
 
 ## Windows operator workflow
 
-\`\`\`powershell
+```powershell
 python -m pip install -r requirements-auth.txt
 
 # Obtain the tenant/client UUIDs from your organization's authorized Entra application registration.
@@ -34,10 +34,10 @@ python -m poc graph-auth-check --scope Files.Read
 
 # An actual authorized Graph drive-item plan is required. Public synthetic fixtures
 # do not contain real drive identities and cannot be used for live downloads.
-python -m poc graph-stage --plan path/to/authorized-plan.json --out private-staged \`
+python -m poc graph-stage --plan path/to/authorized-plan.json --out private-staged `
   --allow-download-host approved-tenant-download-host.example --auth-mode entra-delegated --scope Files.Read
 python -m poc graph-verify --report private-staged/graph-staging-report.json --staged-root private-staged
-\`\`\`
+```
 
 Do not paste access tokens into prompts, shell commands, logs, the web UI or source files. Protect downloaded source documents and reports with appropriate local access controls.
 
