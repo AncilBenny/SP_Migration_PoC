@@ -27,6 +27,7 @@ SAMPLES = {
     'modern-demo': ('Modern overview', 'Graph-shaped public documentation adaptation', 'poc/samples/modern-demo.json'),
     'modern-internal-links': ('Internal links', 'Graph-shaped demo with destination URL rewrites', 'poc/samples/modern-internal-links.json'),
     'pnp-public-canvas': ('Public PnP canvas', 'MIT-licensed public CanvasContent1 fixture; custom web part', 'poc/samples/pnp-canvas-public.json'),
+    'cdph-root-routing-demo': ('Separate URL roots', 'Synthetic page, image and document paths for routing demo; not a CDPH export', 'poc/samples/modern-cdph-routes-demo.json'),
     'modern-rich-layout': ('Rich Modern layout', 'Public Microsoft Graph API contracts adapted: title image, 8/4 grid, vertical section', 'poc/samples/modern-rich-layout-public-adapted.json'),
 }
 
@@ -188,14 +189,31 @@ class ProjectStore:
             output_check['passed'] = False
             output_check.setdefault('items', []).extend({'nodeId': path, 'kind': 'asset', 'status': 'lost', 'reason': 'Local bundled asset unavailable'} for path in missing)
             output_check['summary']['lost'] = output_check['summary'].get('lost', 0) + len(missing)
+        from poc.dependencies import audit_export
+        from poc.acquisition import plan_acquisition
+        acquisition_plan = plan_acquisition(project.ir, validation_profile)
+        files['acquisition-plan.json'] = (json.dumps(acquisition_plan, indent=2) + '\n').encode('utf-8')
+        dependency_audit = audit_export(project.ir, html, files, mode=mode)
+        # Do not publish temporary Graph/SharePoint bearer-style links in an
+        # export, even if content mapping otherwise succeeded.
+        if dependency_audit['sourceSensitiveReferenceCount'] or any(d['status'] == 'blocked' and d['reason'].startswith('Preauthenticated')
+               for d in dependency_audit['dependencies']):
+            raise ValueError('PREAUTHENTICATED_REFERENCE_BLOCKED: remove temporary credential URLs before export')
+        if dependency_audit['blocked']:
+            output_check['passed'] = False
+            output_check.setdefault('items', []).append({
+                'nodeId': 'dependency-manifest', 'kind': 'dependency', 'status': 'lost',
+                'reason': 'Missing or unsafe dependencies in the exported page'})
+            output_check['summary']['lost'] = output_check['summary'].get('lost', 0) + 1
         decision = release_decision(project.source_check, output_check, project.ir.get('diagnostics', []))
         quality = {
-            'releaseDecision': decision,
+            'releaseDecision': decision, 'dependencyAudit': dependency_audit['summary'], 'acquisitionCandidates': acquisition_plan['count'],
             'version': 'mvp-0.1', 'sourceToIr': project.source_check, 'irToHtml': output_check,
             'passed': project.source_check['passed'] and output_check['passed'],
             'visualFidelity': 'unverified-no-matched-source-screenshot',
             'scope': 'Content/structure and link/asset checks for supported controls; no computed CSS or JS comparison',
         }
+        files['dependency-manifest.json'] = (json.dumps(dependency_audit, indent=2) + '\n').encode('utf-8')
         files['quality-report.json'] = (json.dumps(quality, indent=2) + '\n').encode('utf-8')
         if mode == 'client':
             files['mapping-report.json'] = (json.dumps(report, indent=2) + '\n').encode('utf-8')
