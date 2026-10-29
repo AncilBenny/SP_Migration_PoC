@@ -43,8 +43,21 @@ def main():
     graph_stage.add_argument('--out', type=Path, required=True)
     graph_stage.add_argument('--allow-download-host', action='append', required=True,
                              help='Exact HTTPS redirect host (repeat for each approved CDN host)')
+    graph_stage.add_argument('--auth-mode', choices=['env-token', 'entra-delegated'], default='env-token',
+                             help='Explicit token provider: environment token or MSAL browser/PKCE')
+    graph_stage.add_argument('--tenant-env', default='MIGRATION_ENTRA_TENANT_ID')
+    graph_stage.add_argument('--client-env', default='MIGRATION_ENTRA_CLIENT_ID')
+    graph_stage.add_argument('--login-hint-env', default=None,
+                             help='Optional local env variable for account selection')
+    graph_stage.add_argument('--scope', choices=['Files.Read', 'Sites.Selected', 'Files.SelectedOperations.Selected'],
+                             default='Files.Read')
+    graph_stage.add_argument('--silent-only', action='store_true', help='Never launch browser login')
     graph_stage.add_argument('--token-env', default='MIGRATION_GRAPH_ACCESS_TOKEN',
                              help='Environment variable containing preauthorized Graph access token')
+    auth_check = sub.add_parser('graph-auth-check', help='Offline Entra delegated-read config check (no login)')
+    auth_check.add_argument('--tenant-env', default='MIGRATION_ENTRA_TENANT_ID')
+    auth_check.add_argument('--client-env', default='MIGRATION_ENTRA_CLIENT_ID')
+    auth_check.add_argument('--scope', choices=['Files.Read', 'Sites.Selected', 'Files.SelectedOperations.Selected'], default='Files.Read')
     graph_publish = sub.add_parser('graph-publish-local', help='Verify staging and copy to a local output package')
     graph_publish.add_argument('--report', type=Path, required=True)
     graph_publish.add_argument('--staged-root', type=Path, required=True)
@@ -64,15 +77,42 @@ def main():
         result = resolve_graph_assets(json.loads(args.ir.read_text(encoding='utf-8')), raw, profile)
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
+    elif args.command == 'graph-auth-check':
+        from .entra_auth import DelegatedAuthConfig, EntraAuthError
+        if not all(re.fullmatch(r'[A-Z][A-Z0-9_]{0,63}', name) for name in (args.tenant_env, args.client_env)):
+            raise SystemExit('ENTRA_INVALID_ENV_NAME')
+        try:
+            result = DelegatedAuthConfig(tenant_id=os.environ.get(args.tenant_env, ''),
+                                         client_id=os.environ.get(args.client_env, ''),
+                                         scope=args.scope).readiness()
+        except EntraAuthError as e:
+            raise SystemExit(str(e)) from None
     elif args.command == 'graph-stage':
         from .graph_assets import stage_graph_files
         from .graph_transport import GraphBinaryFetcher
-        if not re.fullmatch(r'[A-Z][A-Z0-9_]{0,63}', args.token_env):
-            raise SystemExit('Invalid token environment variable name')
-        if not os.environ.get(args.token_env):
-            raise SystemExit('Graph access token environment variable is not set')
-        fetcher = GraphBinaryFetcher(lambda: os.environ.get(args.token_env, ''),
-                                     redirect_hosts=set(args.allow_download_host))
+        if args.auth_mode == 'entra-delegated':
+            from .entra_auth import DelegatedAuthConfig, EntraDelegatedTokenProvider, EntraAuthError
+            env_names = [args.tenant_env, args.client_env]
+            if args.login_hint_env is not None:
+                env_names.append(args.login_hint_env)
+            if not all(re.fullmatch(r'[A-Z][A-Z0-9_]{0,63}', name) for name in env_names):
+                raise SystemExit('ENTRA_INVALID_ENV_NAME')
+            try:
+                config = DelegatedAuthConfig(
+                    tenant_id=os.environ.get(args.tenant_env, ''),
+                    client_id=os.environ.get(args.client_env, ''),
+                    scope=args.scope, allow_interactive=not args.silent_only,
+                    login_hint=os.environ.get(args.login_hint_env) if args.login_hint_env else None)
+                token_provider = EntraDelegatedTokenProvider(config)
+            except EntraAuthError as e:
+                raise SystemExit(str(e)) from None
+        else:
+            if not re.fullmatch(r'[A-Z][A-Z0-9_]{0,63}', args.token_env):
+                raise SystemExit('Invalid token environment variable name')
+            if not os.environ.get(args.token_env):
+                raise SystemExit('Graph access token environment variable is not set')
+            token_provider = lambda: os.environ.get(args.token_env, '')
+        fetcher = GraphBinaryFetcher(token_provider, redirect_hosts=set(args.allow_download_host))
         plan = json.loads(args.plan.read_text(encoding='utf-8'))
         result = stage_graph_files(plan, args.out, fetcher=fetcher)
     elif args.command == 'graph-publish-local':
