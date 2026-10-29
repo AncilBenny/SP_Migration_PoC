@@ -92,23 +92,17 @@ python -m poc validate --ir demo-rewrite/page.ir.json --html demo-mapped/index.h
 
 Run `python -m unittest discover -s tests -v` for positive **and deliberately broken-output** tests. The validate command writes `demo-mapped/quality-check.json` and exits with code `1` if an expected component, link, heading, image or bundled asset is missing; it does not re-run the SharePoint parser. Details, limits and statuses are in [Content accounting and output checks](docs/poc/06-content-loss-and-target-validation.md).
 
+## MVP product shell: Migration Studio (local-only)
 
----
-
-## Migration Studio — MVP v0.1 (new branch)
-
-**Run on your own computer.** Python 3.10+; no cloud, credentials, SharePoint plugin, database, or JavaScript toolchain required:
+Run on Windows PowerShell or macOS/Linux **from the repository root**:
 
 ```powershell
-git switch mvp/01-migration-studio
 python -m unittest discover -s tests -v
 python -m studio --port 8765
 ```
 
-Open **http://127.0.0.1:8765/**. The local application supports public sample selection or a local JSON upload (maximum 3 MB), a readable canonical IR, destination choices (neutral structural HTML vs configurable client-mapped HTML), a sandboxed preview, mapping/quality reports and a ZIP export containing HTML, CSS, assets and CIR. Server sessions are held in memory and disappear when the app restarts.
+Open **http://127.0.0.1:8765/**. The app offers: public sample or local JSON import (3 MB max), IR inspection, structural/client-mapped target selection, component mapping for Quick Links, brand color and heading settings, sandboxed generated preview, validation report and downloadable HTML/CSS/assets/IR ZIP. The preview and export are generated locally; no tenant access or plugin is needed. Projects are in memory and cleared on restart. **This is a local MVP scaffold, not a deployed service.**
 
-**Source scope:** one Modern SharePoint source family. Public Microsoft Graph–adapted and MIT-licensed PnP test fixtures only. Actual tenant extracts and visual fidelity against matched SharePoint screenshots are not established. No live SharePoint fetches or private plugins.
+The `/api/capabilities` endpoint lists engine maturity and research evidence. `quality-report.json` distinguishes passing **supported-content checks** from **release approval**: migration outputs stay `review-required` when fidelity has not been independently verified, and become `blocked` when supported content/assets are actually lost. An unsupported web part always needs manual review.
 
-**Quality labels are deliberately conservative:** `/api/capabilities` and the app's Engine readiness panel show each engine's research/maturity status. `quality-report.json` separates `passedSupportedChecks` from `readyForProduction` and uses `review-required` or `blocked` decisions. Content checks may pass even when custom web parts require review; a green demo isn't production certification.
-
-**Engineering standard:** [Research and non-negotiable engine quality gates](docs/mvp/01-engine-research-and-quality-gates.md) references Microsoft Graph `sitePage` and webparts, SPFx data processing, PnP page transformation, SharePoint page model, and Microsoft 365 Assessment. The current engine is an **MVP prototype**, with a documented path toward production-level reliability, source fidelity, security, accessibility, and measurable comparison. GitHub Actions failures on previous PoC commits remain an unresolved infrastructure/CI gate.
+Read [Engine research and quality gates](docs/mvp/01-engine-research-and-quality-gates.md) for Microsoft Graph, PnP, SharePoint page model and assessment sources; implementation gaps and product readiness conditions are tracked explicitly. Our goal is to build competitive, research-backed engines, **not to claim that the current public-fixture prototype is production-grade**. GitHub CI failure remains unresolved; local Python unit/API tests are not a substitute for CI, browser fidelity, security audit or approved real-site tests.
