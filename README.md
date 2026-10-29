@@ -163,3 +163,11 @@ supports an injected **authorized** byte provider for isolated integration tests
 with SHA-256 and post-write verification; it includes **no live Graph OAuth or
 file-download implementation**. See
 [`docs/mvp/05-microsoft-graph-driveitem-asset-resolver.md`](docs/mvp/05-microsoft-graph-driveitem-asset-resolver.md).
+
+## MVP milestone 06: authorized Graph transport and verified local publication
+
+A **server-side, opt-in** `GraphBinaryFetcher` now supports Microsoft Graph `/drives/{driveId}/items/{itemId}/content`, supplying the bearer token only to `graph.microsoft.com`. Temporary 302 download redirects require an **exactly allowlisted public HTTPS hostname**, have **no Authorization header**, and are never stored. DNS is checked for public-only addresses and pinned to the TLS connection; redirects, proxies, and oversized responses are blocked. Microsoft Graph throttling receives bounded Retry-After/backoff handling.
+
+`python -m poc graph-stage` stages real Graph bytes only when an independently authorized token is available through the specified environment variable; no credentials are built in or required for public-fixture tests. `python -m poc graph-publish-local` then copies verified staged bytes into a local destination package and **reads them back for SHA-256 verification**. A local package is **not** evidence of a live website/CDN/cloud publication; this remains a separate adapter and integration gate.
+
+See [Graph transport security and publication states](docs/mvp/06-authorized-graph-transport-and-publication.md). All network tests in this branch use injected mock transport; **no live SharePoint tenant** was contacted. Never commit tokens, signed URLs or private tenant exports.
