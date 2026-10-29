@@ -268,7 +268,7 @@ def ir_to_html(ir: dict, html: str, profile: dict, output_dir: Path | None = Non
             expected_text = normalized_text(facts.text)
             expected_headings = facts.headings
             expected_links = [rewrite_url(link, base, rules, [], node_id=ident) for link in facts.links]
-            expected_images = facts.images
+            expected_images = [{'src': rewrite_url(img['src'], base, rules, [], node_id=ident), 'alt': img['alt']} for img in facts.images]
         elif kind == 'image':
             content = node.get('content') or {}
             expected_text = normalized_text(str(content.get('caption') or ''))
@@ -322,6 +322,8 @@ def validate_target_file(ir_path: Path, html_path: Path, profile_path: Path) -> 
     from hashlib import sha256
     ir_bytes = ir_path.read_bytes()
     ir = json.loads(ir_bytes)
+    from .contracts import validate_ir
+    validate_ir(ir)
     profile = json.loads(profile_path.read_text(encoding='utf-8'))
     from .mapping import validate_profile
     validate_profile(profile)
