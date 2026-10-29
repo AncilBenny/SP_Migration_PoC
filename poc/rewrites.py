@@ -57,21 +57,42 @@ class LinkHTMLMapper(HTMLParser):
         self.parts: list[str] = []
 
     def handle_starttag(self, tag: str, attrs):
-        from .engine import ALLOWED_TAGS
+        # The input has already passed through a strict sanitizer. Preserve
+        # only vetted semantic attributes, including inline image and table
+        # properties. Rewriting must not discard them from the target output.
+        from .richtext import ALLOWED_TAGS
         if tag not in ALLOWED_TAGS:
             return
-        attr = dict(attrs)
-        extra = ""
-        if tag == "a" and attr.get("href"):
-            target = rewrite_url(attr["href"], self.base, self.rules, self.audit, node_id=self.node_id)
-            if target:
-                extra = f' href="{escape(target, quote=True)}"'
-        self.parts.append(f"<{tag}{extra}>")
+        attrs = dict(attrs)
+        retained = {}
+        if tag == 'a' and attrs.get('href'):
+            href = rewrite_url(attrs['href'], self.base, self.rules, self.audit, node_id=self.node_id)
+            if href:
+                retained['href'] = href
+        if tag == 'img' and attrs.get('src'):
+            src = rewrite_url(attrs['src'], self.base, self.rules, self.audit, node_id=self.node_id)
+            if src and urlsplit(src).scheme.lower() in ('', 'http', 'https'):
+                retained['src'] = src
+                retained['alt'] = attrs.get('alt', '')
+        if tag in ('td', 'th'):
+            for name in ('rowspan', 'colspan'):
+                if name in attrs and attrs[name].isascii() and attrs[name].isdecimal() and 1 <= int(attrs[name]) <= 20:
+                    retained[name] = attrs[name]
+        if tag == 'th' and attrs.get('scope') in ('row', 'col', 'rowgroup', 'colgroup'):
+            retained['scope'] = attrs['scope']
+        extra = ''.join(f' {key}="{escape(value, quote=True)}"' for key, value in retained.items())
+        self.parts.append(f'<{tag}{extra}>')
 
     def handle_endtag(self, tag: str):
         from .engine import ALLOWED_TAGS, VOID_TAGS
         if tag in ALLOWED_TAGS and tag not in VOID_TAGS:
             self.parts.append(f"</{tag}>")
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+        from .richtext import VOID_TAGS
+        if tag not in VOID_TAGS:
+            self.handle_endtag(tag)
 
     def handle_data(self, data: str):
         self.parts.append(escape(data))
