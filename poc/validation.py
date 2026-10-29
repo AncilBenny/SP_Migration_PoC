@@ -138,14 +138,31 @@ def source_to_ir(source: dict, ir: dict) -> dict:
     """
     index = {n['id']: n for n in leaf_nodes(ir)}
     entries = []
+    for ix, section in enumerate(source.get('canvasLayout', {}).get('horizontalSections', [])):
+        for ci, col in enumerate(section.get('columns') or []):
+            if 'webparts' not in col:
+                entries.append({'nodeId': f'section-{ix}-column-{ci}', 'kind': 'sourceCompleteness',
+                                'status': 'needs-review', 'reason': 'Expanded webparts relationship was not supplied'})
+    vertical_section = source.get('canvasLayout', {}).get('verticalSection')
+    if isinstance(vertical_section, dict) and 'webparts' not in vertical_section:
+        entries.append({'nodeId': 'vertical-section', 'kind': 'sourceCompleteness',
+                        'status': 'needs-review', 'reason': 'Expanded vertical webparts were not supplied'})
     title = str(source.get('title') or '')
     hero = next((n for n in index.values() if n['kind'] == 'hero'), None)
     entries.append({'nodeId': 'title-area', 'kind': 'pageTitle',
                     'status': 'preserved' if hero and hero.get('content', {}).get('text') == title else 'lost'})
-    if source.get('canvasLayout', {}).get('verticalSection'):
-        entries.append({'nodeId': 'vertical-section', 'kind': 'layout', 'status': 'needs-review',
-                        'reason': 'Vertical section not mapped in Modern PoC'})
-    for section in source.get('canvasLayout', {}).get('horizontalSections', []):
+    vertical = source.get('canvasLayout', {}).get('verticalSection')
+    if vertical is not None:
+        sections = [n for n in ir['tree'].get('children', []) if n.get('kind') == 'section'
+                    and n.get('props', {}).get('placement') == 'sidebar']
+        entries.append({'nodeId': 'vertical-section', 'kind': 'layout',
+                        'status': 'needs-review' if sections else 'lost',
+                        'reason': 'Sidebar content captured, but placement and styling need review' if sections
+                                  else 'Source vertical section absent from CIR'})
+    source_sections = list(source.get('canvasLayout', {}).get('horizontalSections', []))
+    if vertical is not None:
+        source_sections.append({'columns': [{'webparts': vertical.get('webparts') or []}]})
+    for section in source_sections:
         for col in section.get('columns', []):
             for part in col.get('webparts') or []:
                 part_id = str(part.get('id') or '')
@@ -240,6 +257,12 @@ def ir_to_html(ir: dict, html: str, profile: dict, output_dir: Path | None = Non
             props = node.get('props') or {}
             expected_text = normalized_text([str(props.get('eyebrow', '')), str(node.get('content', {}).get('text', ''))])
             expected_headings['h1'] = 1
+            if props.get('imageUrl'):
+                src = str(props['imageUrl'])
+                bundled = src.startswith('assets/') and any(a.get('resolvedUrl') == src for a in ir.get('assets', []))
+                if bundled and asset_dir != 'assets':
+                    src = asset_dir + '/' + src[len('assets/'):]
+                expected_images = [{'src': src, 'alt': str(props.get('imageAlt') or '')}]
         elif kind == 'richText':
             facts = html_facts(str(node.get('props', {}).get('safeHtml', '')))
             expected_text = normalized_text(facts.text)
