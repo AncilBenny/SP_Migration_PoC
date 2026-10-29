@@ -1,0 +1,37 @@
+{
+  "version": "1.0",
+  "id": "cdph-root-routing-example",
+  "components": {
+    "hero": "pageHeader",
+    "richText": "contentBody",
+    "image": "media",
+    "linkList": "resourceCards",
+    "unknown": "reviewNote"
+  },
+  "colors": {
+    "primary": "#21425c",
+    "background": "#f2f4f5",
+    "surface": "#ffffff",
+    "text": "#24323d",
+    "link": "#176a87"
+  },
+  "assetDirectory": "media",
+  "rootMappings": [
+    {
+      "kind": "page",
+      "sourcePrefix": "https://www.cdph.ca.gov/",
+      "targetPrefix": "https://internet.staging/",
+      "stripAspx": true
+    },
+    {
+      "kind": "image",
+      "sourcePrefix": "https://www.cdph.ca.gov/",
+      "targetPrefix": "https://images.internet.staging/"
+    },
+    {
+      "kind": "document",
+      "sourcePrefix": "https://www.cdph.ca.gov/",
+      "targetPrefix": "https://documents.internet.staging/"
+    }
+  ]
+}
