@@ -9,7 +9,7 @@ async function api(path, payload) {
   return result;
 }
 function currentProfile(){
-  return {version:'1.0',id:'client-resource-portal',components:{hero:'pageHeader',richText:'contentBody',image:'media',linkList:$('links').value,unknown:'reviewNote'},colors:{primary:$('primary').value,background:'#f2f4f5',surface:'#ffffff',text:'#24323d',link:'#176a87'},layout:{maxWidthPx:1080,gapPx:28},font:'system',labels:{resourcesHeading:$('resourceTitle').value||'Resources'},assetDirectory:'media',urlMappings:[{from:'https://example.org/sites/demo/SitePages/',to:'/knowledge/'}]};
+  return {version:'1.0',id:'client-resource-portal',components:{hero:'pageHeader',richText:'contentBody',image:'media',linkList:$('links').value,unknown:'reviewNote'},colors:{primary:$('primary').value,background:'#f2f4f5',surface:'#ffffff',text:'#24323d',link:'#176a87'},layout:{maxWidthPx:1080,gapPx:28},font:'system',labels:{resourcesHeading:$('resourceTitle').value||'Resources'},assetDirectory:'media',urlMappings:[],rootMappings:['page','image','document'].map(kind=>({kind,sourcePrefix:$('sourceRoot').value.trim(),targetPrefix:$(kind==='page'?'pageRoot':kind==='image'?'imageRoot':'documentRoot').value.trim(),...(kind==='page'?{stripAspx:$('stripAspx').checked}:{})}))};
 }
 function setTab(tab){
   document.querySelectorAll('[data-tab]').forEach(b=>{const active=b.dataset.tab===tab;b.classList.toggle('selected',active);b.setAttribute('aria-selected',String(active));});
@@ -78,6 +78,11 @@ async function init(){
     for(const sample of data.samples){const o=document.createElement('option');o.value=sample.id;o.textContent=sample.title+' — '+sample.description;$('sample').append(o);}
     $('sample').value='modern-demo';
   }catch(e){notice(e.message,true);}
+  $('sample').addEventListener('change',()=>{
+    if($('sample').value==='cdph-root-routing-demo'){
+      $('sourceRoot').value='https://www.cdph.ca.gov/';
+    }
+  });
   $('analyze').addEventListener('click',analyze);
   $('generate').addEventListener('click',generate);
   $('rebuild').addEventListener('click',generate);
