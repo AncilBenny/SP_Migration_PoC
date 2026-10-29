@@ -106,3 +106,27 @@ Open **http://127.0.0.1:8765/**. The app offers: public sample or local JSON imp
 The `/api/capabilities` endpoint lists engine maturity and research evidence. `quality-report.json` distinguishes passing **supported-content checks** from **release approval**: migration outputs stay `review-required` when fidelity has not been independently verified, and become `blocked` when supported content/assets are actually lost. An unsupported web part always needs manual review.
 
 Read [Engine research and quality gates](docs/mvp/01-engine-research-and-quality-gates.md) for Microsoft Graph, PnP, SharePoint page model and assessment sources; implementation gaps and product readiness conditions are tracked explicitly. Our goal is to build competitive, research-backed engines, **not to claim that the current public-fixture prototype is production-grade**. GitHub CI failure remains unresolved; local Python unit/API tests are not a substitute for CI, browser fidelity, security audit or approved real-site tests.
+
+## MVP engine hardening: versioned CIR v0.2 and audited rich text
+
+New source runs generate **CIR 0.2.0** (Draft 2020-12 schema at
+`schema/page.ir.v0.2.schema.json`), with fail-closed contract validation
+at rendering/mapping boundaries. **Rebuild older `page.ir.json` files** from
+source; `0.1.0` files are deliberately not silently upgraded. `poc/contracts.py`
+checks node IDs, safe bounded trees, layouts, required content and assets.
+
+The audited rich-text serializer now preserves safe inline images, figure
+captions, table headers and bounded cell spans, and reports removed markup /
+URLs plus unresolved inline image asset handling. It is not a full browser
+sanitizer; production security reviews and a maintained HTML5/DOM sanitizer
+remain necessary. Neither output path claims pixel-perfect source fidelity.
+
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m unittest discover -s tests -v
+python -m poc build --input poc/samples/modern-rich-layout-public-adapted.json --out demo-modern
+python -m poc map --ir demo-modern/page.ir.json --profile poc/profiles/client-example.json --out demo-target
+python -m studio --port 8765
+```
+
+[See the evidence, contract and explicit remaining release gates](docs/mvp/03-cir-v02-contract-and-richtext.md).
