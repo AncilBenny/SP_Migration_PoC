@@ -311,9 +311,27 @@ def build(source: Path, out: Path, assets_dir: Path | None = None, *, style_mode
     total_webparts = (sum(len(col.get("webparts") or []) for section in doc["canvasLayout"].get("horizontalSections", []) for col in section.get("columns") or [])
                       + len((doc["canvasLayout"].get("verticalSection") or {}).get("webparts") or []))
     supported = sum(counts[k] for k in ("richText", "image", "linkList"))
+    from .dependencies import audit_export
+    from .acquisition import plan_acquisition
+    acquisition_plan = plan_acquisition(ir)
+    (out / 'acquisition-plan.json').write_text(json.dumps(acquisition_plan, indent=2) + '\n', encoding='utf-8')
+    output_files = {'index.html': html.encode('utf-8'), 'style.css': (STRUCTURAL_CSS if style_mode == 'structural' else DEMO_CSS).encode('utf-8')}
+    for asset_record in ir['assets']:
+        path = asset_record.get('resolvedUrl', '')
+        if path.startswith('assets/') and (out / path).is_file():
+            output_files[path] = (out / path).read_bytes()
+    dependency_audit = audit_export(ir, html, output_files, mode='structural')
+    if dependency_audit['sourceSensitiveReferenceCount'] or any(dep['status'] == 'blocked' and dep['reason'].startswith('Preauthenticated')
+           for dep in dependency_audit['dependencies']):
+        raise ValueError('PREAUTHENTICATED_REFERENCE_BLOCKED: remove temporary credential URLs before export')
+    (out / 'dependency-manifest.json').write_text(json.dumps(dependency_audit, indent=2) + '\n', encoding='utf-8')
     report = {"source": str(source), "status": "demo-generated", "styleMode": style_mode, "visualFidelity": "unverified-no-rendered-source-baseline", "webPartsFound": total_webparts, "mappedParts": supported, "unmappedParts": counts["unknown"], "coveragePercent": round(100 * supported / total_webparts, 1) if total_webparts else 100.0, "components": dict(counts), "assets": len(ir["assets"]), "warnings": ir["diagnostics"], "limitations": ["Public documentation-adapted fixture, not an authenticated tenant extraction", "Modern Graph canvas subset only", "Source screenshots/CSS unavailable; generated styling is not a visual replica", "No dynamic behavior migration"]}
     target_audit = ir_to_html(ir, html, {}, out)
-    quality = {"version": "1.0", "irSha256": sha256(ir_text.encode("utf-8")).hexdigest(),
+    if dependency_audit['blocked']:
+        target_audit['passed'] = False
+        target_audit.setdefault('items', []).append({'nodeId': 'dependency-manifest', 'kind': 'dependency', 'status': 'lost', 'reason': 'Missing or unsafe dependencies'})
+        target_audit['summary']['lost'] = target_audit['summary'].get('lost', 0) + 1
+    quality = {"version": "1.0", "dependencyAudit": dependency_audit['summary'], "irSha256": sha256(ir_text.encode("utf-8")).hexdigest(),
                "sourceToIr": source_audit, "irToHtml": target_audit,
                "passed": source_audit["passed"] and target_audit["passed"],
                "visualFidelity": "unverified-no-matched-source-baseline"}
