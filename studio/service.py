@@ -27,6 +27,7 @@ SAMPLES = {
     'modern-demo': ('Modern overview', 'Graph-shaped public documentation adaptation', 'poc/samples/modern-demo.json'),
     'modern-internal-links': ('Internal links', 'Graph-shaped demo with destination URL rewrites', 'poc/samples/modern-internal-links.json'),
     'pnp-public-canvas': ('Public PnP canvas', 'MIT-licensed public CanvasContent1 fixture; custom web part', 'poc/samples/pnp-canvas-public.json'),
+    'modern-rich-layout': ('Rich Modern layout', 'Public Microsoft Graph API contracts adapted: title image, 8/4 grid, vertical section', 'poc/samples/modern-rich-layout-public-adapted.json'),
 }
 
 
