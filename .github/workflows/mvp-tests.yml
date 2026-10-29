@@ -1,0 +1,42 @@
+name: MVP Migration Studio checks
+
+on:
+  push:
+    branches: ["mvp/**"]
+  pull_request:
+    paths:
+      - "studio/**"
+      - "poc/**"
+      - "tests/**"
+      - "docs/mvp/**"
+      - ".github/workflows/mvp-tests.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Unit, security and local HTTP integration tests
+        run: python -m unittest discover -s tests -v
+      - name: Compile application and engine
+        run: python -m compileall -q poc studio
+      - name: Smoke check source and output packaging
+        run: |
+          python - <<'PY'
+          import io, json
+          from zipfile import ZipFile
+          from studio.service import ProjectStore
+          studio = ProjectStore()
+          project = studio.analyze(sample_id='modern-demo')
+          output = studio.render(project['projectId'], mode='client')
+          assert output['quality']['releaseDecision']['status'] == 'review-required'
+          with ZipFile(io.BytesIO(studio.export(project['projectId'], 'client'))) as exported:
+              assert 'index.html' in exported.namelist()
+              assert 'quality-report.json' in exported.namelist()
+          print('MVP local workflow smoke passed (not production approval)')
+          PY
