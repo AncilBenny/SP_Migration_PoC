@@ -14,7 +14,7 @@ import re
 import shutil
 
 from .engine import safe_url, sanitize_html
-from .rewrites import validate_url_mappings, rewrite_url, rewrite_rich_html
+from .rewrites import validate_url_mappings, validate_root_mappings, rewrite_url, rewrite_rich_html
 
 TARGETS = {
     'hero': {'pageHeader'},
@@ -37,7 +37,7 @@ def validate_profile(profile: dict) -> dict:
         raise ValueError('Expected target mapping profile version 1.0')
     if not isinstance(profile.get('id'), str) or not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,63}', profile['id']):
         raise ValueError('Invalid profile id')
-    if set(profile) - {'version', 'id', 'components', 'colors', 'layout', 'font', 'labels', 'urlMappings', 'assetDirectory'}:
+    if set(profile) - {'version', 'id', 'components', 'colors', 'layout', 'font', 'labels', 'urlMappings', 'assetDirectory', 'rootMappings'}:
         raise ValueError('Unknown profile configuration keys')
     components = profile.get('components', {})
     if not isinstance(components, dict):
@@ -68,6 +68,7 @@ def validate_profile(profile: dict) -> dict:
     if not isinstance(directory, str) or not re.fullmatch(r'[a-z][a-z0-9_-]{0,31}', directory):
         raise ValueError('assetDirectory must be a simple safe folder name')
     validate_url_mappings(profile.get('urlMappings', []))
+    validate_root_mappings(profile.get('rootMappings', []))
     return profile
 
 
@@ -85,6 +86,7 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
     asset_rewrites: list[dict] = []
     asset_directory = profile.get('assetDirectory', 'assets')
     rules = profile.get('urlMappings', [])
+    root_mappings = profile.get('rootMappings', [])
 
     def node_html(node: dict) -> str:
         kind = node.get('kind')
@@ -124,12 +126,12 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
                 target_path = asset_directory + '/' + image_url[len('assets/'):]
                 asset_rewrites.append({'nodeId': str(node.get('id', '')), 'originalPath': image_url, 'targetPath': target_path})
                 image_url = target_path
-            image_url = image_url if bundled else safe_url(image_url, base_url)
+            image_url = image_url if bundled else rewrite_url(image_url, base_url, rules, url_audit, node_id=str(node.get('id', '')), kind='image', root_mappings=root_mappings)
             figure = (f'<img class="target-hero-image" src="{escape(image_url, quote=True)}" alt="{escape(str(props.get("imageAlt") or ""), quote=True)}">' if image_url else '')
             return f'<header class="target-header"{marker}><div class="target-wrap">{figure}{subtitle}<h1>{escape(str(data.get("text", "")))}</h1></div></header>'
         if target == 'contentBody':
             # Sanitize again: a CIR file may be modified independently of extraction.
-            return f'<div class="target-body"{marker}>{rewrite_rich_html(str(props.get("safeHtml", "")), base_url, rules, url_audit, node_id=str(node.get("id", "")))}</div>'
+            return f'<div class="target-body"{marker}>{rewrite_rich_html(str(props.get("safeHtml", "")), base_url, rules, url_audit, node_id=str(node.get("id", "")), root_mappings=root_mappings)}</div>'
         if target == 'media':
             original_src = str(props.get('src', ''))
             # Reuse assets already rewritten by the CIR build, instead of
@@ -137,7 +139,7 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
             bundled = (original_src.startswith('assets/') and
                        '..' not in Path(original_src).parts and
                        any(a.get('resolvedUrl') == original_src for a in ir.get('assets', [])))
-            src = original_src if bundled else safe_url(original_src, base_url)
+            src = original_src if bundled else rewrite_url(original_src, base_url, rules, url_audit, node_id=str(node.get('id', '')), kind='image', root_mappings=root_mappings)
             if bundled and asset_directory != 'assets':
                 src = asset_directory + '/' + original_src[len('assets/'):]
                 asset_rewrites.append({'nodeId': str(node.get('id', '')), 'originalPath': original_src, 'targetPath': src})
@@ -152,7 +154,7 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
         if target in {'simpleLinks', 'resourceCards'}:
             items = []
             for link in props.get('items', []):
-                href = rewrite_url(str(link.get('url', '')), base_url, rules, url_audit, node_id=str(node.get('id', '')))
+                href = rewrite_url(str(link.get('url', '')), base_url, rules, url_audit, node_id=str(node.get('id', '')), root_mappings=root_mappings)
                 if not href:
                     diagnostics.append({'code': 'TARGET_UNSAFE_LINK', 'nodeId': str(node.get('id', ''))})
                     continue
@@ -207,13 +209,31 @@ def build_target(ir_path: Path, profile_path: Path, out: Path, *, strict: bool =
         path = asset.get('resolvedUrl', '')
         if path.startswith('assets/') and '..' not in Path(path).parts:
             source = ir_path.parent / path
-            if not source.is_file():
+            if (not source.is_file() or source.is_symlink() or
+                    not source.resolve().is_relative_to(ir_path.parent.resolve())):
                 report['mappingWarnings'].append({'code': 'TARGET_MISSING_ASSET', 'path': path})
                 continue
             dest_path = profile.get('assetDirectory', 'assets') + '/' + path[len('assets/'):]
             destination = out / dest_path
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, destination)
+    from .dependencies import audit_export
+    from .acquisition import plan_acquisition
+    acquisition_plan = plan_acquisition(ir, profile)
+    (out / 'acquisition-plan.json').write_text(json.dumps(acquisition_plan, indent=2) + '\n', encoding='utf-8')
+    export_files = {'index.html': html.encode('utf-8'), 'style.css': css.encode('utf-8')}
+    for asset in ir.get('assets', []):
+        path = asset.get('resolvedUrl', '')
+        if path.startswith('assets/'):
+            target = profile.get('assetDirectory', 'assets') + '/' + path[len('assets/'):]
+            destination = out / target
+            if destination.is_file() and not destination.is_symlink() and destination.resolve().is_relative_to(out.resolve()):
+                export_files[target] = destination.read_bytes()
+    dependency_audit = audit_export(ir, html, export_files, mode='client')
+    if dependency_audit['sourceSensitiveReferenceCount'] or any(dep['status'] == 'blocked' and dep['reason'].startswith('Preauthenticated')
+           for dep in dependency_audit['dependencies']):
+        raise ValueError('PREAUTHENTICATED_REFERENCE_BLOCKED: remove temporary credential URLs before export')
+    (out / 'dependency-manifest.json').write_text(json.dumps(dependency_audit, indent=2) + '\n', encoding='utf-8')
     from .validation import ir_to_html
     output_check = ir_to_html(ir, html, profile, out)
     input_quality_path = ir_path.parent / 'quality-report.json'
@@ -222,11 +242,17 @@ def build_target(ir_path: Path, profile_path: Path, out: Path, *, strict: bool =
         original = json.loads(input_quality_path.read_text(encoding='utf-8'))
         if original.get('irSha256') == report['irSha256']:
             source_check = original.get('sourceToIr', source_check)
-    quality = {'version': '1.0', 'irSha256': report['irSha256'],
+    if dependency_audit['blocked']:
+        output_check['passed'] = False
+        output_check.setdefault('items', []).append({'nodeId': 'dependency-manifest', 'kind': 'dependency', 'status': 'lost', 'reason': 'Missing or unsafe bundled dependencies'})
+        output_check['summary']['lost'] = output_check['summary'].get('lost', 0) + 1
+    quality = {'version': '1.0', 'dependencyAudit': dependency_audit['summary'], 'irSha256': report['irSha256'],
                'sourceToIr': source_check, 'irToHtml': output_check,
                'passed': output_check['passed'] and source_check.get('passed', True),
                'visualFidelity': 'not-evaluated-client-target-intent'}
     (out / 'quality-report.json').write_text(json.dumps(quality, indent=2) + '\n', encoding='utf-8')
+    report['acquisitionPlan'] = {'file': 'acquisition-plan.json', 'candidates': acquisition_plan['count']}
+    report['dependencies'] = {'manifest': 'dependency-manifest.json', 'summary': dependency_audit['summary']}
     report['contentAccounting'] = {'passed': quality['passed'],
                                    'outputSummary': output_check['summary'],
                                    'qualityReport': 'quality-report.json'}
