@@ -171,3 +171,16 @@ A **server-side, opt-in** `GraphBinaryFetcher` now supports Microsoft Graph `/dr
 `python -m poc graph-stage` stages real Graph bytes only when an independently authorized token is available through the specified environment variable; no credentials are built in or required for public-fixture tests. `python -m poc graph-publish-local` then copies verified staged bytes into a local destination package and **reads them back for SHA-256 verification**. A local package is **not** evidence of a live website/CDN/cloud publication; this remains a separate adapter and integration gate.
 
 See [Graph transport security and publication states](docs/mvp/06-authorized-graph-transport-and-publication.md). All network tests in this branch use injected mock transport; **no live SharePoint tenant** was contacted. Never commit tokens, signed URLs or private tenant exports.
+
+## Optional Entra delegated authorization (MVP milestone 07)
+
+For **authorized operator-driven Graph file staging**, register an approved **single-tenant public desktop client**, then use MSAL browser-based login with a delegated read scope. The default is `Files.Read`; this adapter rejects all broad, write and `.default` scopes. `Sites.Selected` additionally requires resource grants and approved consent—requesting a scope does **not** prove access.
+
+```powershell
+python -m pip install -r requirements-auth.txt
+# Set MIGRATION_ENTRA_TENANT_ID and MIGRATION_ENTRA_CLIENT_ID via your approved local process.
+python -m poc graph-auth-check
+python -m poc graph-stage --plan path/to/authorized-plan.json --out private-staged --allow-download-host your-approved-download-host.example --auth-mode entra-delegated
+```
+
+`graph-auth-check` makes **no network calls**, prints no identifiers or tokens, and explicitly reports that permissions remain unverified. An existing env-token mode remains available for separately authorized operators. Synthetic metadata fixtures are **not valid live Graph download plans**. See [least-privilege design, operator steps and limitations](docs/mvp/07-entra-least-privilege-authentication.md). This is an operator tool, **not a hosted enterprise identity system**.
