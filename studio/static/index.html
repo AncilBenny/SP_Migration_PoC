@@ -50,6 +50,14 @@
           <label for="primary">Target brand color</label><div class="color-line"><input type="color" id="primary" value="#263e52"><span id="colorLabel">#263e52</span></div>
           <label for="links">Map Quick Links to</label><select id="links"><option value="resourceCards">Resource cards</option><option value="simpleLinks">Standard link list</option></select>
           <label for="resourceTitle">Resource section heading</label><input type="text" id="resourceTitle" value="Useful resources" maxlength="120">
+          <details class="root-settings"><summary>URL roots · pages / images / documents</summary>
+            <p class="fine">Each reference retains its path after the source root. Page routes can remove .aspx; asset roots are separate. Remote URLs are not downloaded automatically.</p>
+            <label for="sourceRoot">SharePoint source root (HTTPS, ending /)</label><input type="url" id="sourceRoot" value="https://example.org/sites/demo/" spellcheck="false">
+            <label for="pageRoot">New page root</label><input type="text" id="pageRoot" value="https://internet.staging/" spellcheck="false">
+            <label for="imageRoot">New image root</label><input type="text" id="imageRoot" value="https://images.internet.staging/" spellcheck="false">
+            <label for="documentRoot">New document root</label><input type="text" id="documentRoot" value="https://documents.internet.staging/" spellcheck="false">
+            <label class="checkline" for="stripAspx"><input type="checkbox" id="stripAspx" checked> Remove .aspx extension from page destinations</label>
+          </details>
         </div>
         <button class="primary full" id="generate" disabled>Generate destination <span>→</span></button>
         <p class="fine">Profiles change the output, never the imported IR.</p>
