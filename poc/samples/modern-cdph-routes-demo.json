@@ -1,0 +1,119 @@
+{
+  "_sampleProvenance": "Self-authored Modern Graph-shaped URL routing test only; no claim that these pages/files exist or were exported from a CDPH tenant.",
+  "_reference": "https://learn.microsoft.com/en-us/graph/api/sitepage-create?view=graph-rest-1.0",
+  "@odata.type": "#microsoft.graph.sitePage",
+  "id": "cdph-route-synthetic-001",
+  "name": "Example-Page.aspx",
+  "webUrl": "https://www.cdph.ca.gov/SitePages/Example-Page.aspx",
+  "title": "CDPH-style URL routing example (synthetic)",
+  "description": "Demonstrates distinct page, image and document destination roots.",
+  "pageLayout": "article",
+  "titleArea": {
+    "layout": "colorBlock",
+    "title": "Community health resources",
+    "textAboveTitle": "PUBLIC SERVICES"
+  },
+  "canvasLayout": {
+    "horizontalSections": [
+      {
+        "id": "section-1",
+        "layout": "oneThirdRightColumn",
+        "emphasis": "none",
+        "columns": [
+          {
+            "id": "1",
+            "width": 8,
+            "webparts": [
+              {
+                "@odata.type": "#microsoft.graph.textWebPart",
+                "id": "intro-text",
+                "innerHtml": "<h2>Destination URL mapping</h2><p>This sample is authored for URL routing demonstrations, not an actual SharePoint page.</p><p><a href=\"https://www.cdph.ca.gov/anything.aspx?lang=en#main\">Page reference</a> \u00b7 <a href=\"https://www.cdph.ca.gov/records/report.pdf\">Document reference</a></p><p><img src=\"https://www.cdph.ca.gov/images/sample.png\" alt=\"Example inline image\"></p>"
+              }
+            ]
+          },
+          {
+            "id": "2",
+            "width": 4,
+            "webparts": [
+              {
+                "@odata.type": "#microsoft.graph.standardWebPart",
+                "id": "intro-image",
+                "webPartType": "d1d91016-032f-456d-98a4-721247c305e8",
+                "data": {
+                  "dataVersion": "1.9",
+                  "properties": {
+                    "altText": "Illustration of a community health resource card",
+                    "captionText": "Illustrative demo asset, not extracted from SharePoint"
+                  },
+                  "serverProcessedContent": {
+                    "imageSources": [
+                      {
+                        "key": "imageSource",
+                        "value": "https://www.cdph.ca.gov/images/promo.jpg"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "section-2",
+        "layout": "oneColumn",
+        "emphasis": "soft",
+        "columns": [
+          {
+            "id": "1",
+            "width": 12,
+            "webparts": [
+              {
+                "@odata.type": "#microsoft.graph.standardWebPart",
+                "id": "links-part",
+                "webPartType": "c70391ea-0b10-4ee9-b2b4-006d3fcad0cd",
+                "data": {
+                  "properties": {
+                    "items": [
+                      {
+                        "title": "Nested page",
+                        "url": "https://www.cdph.ca.gov/guides/overview.aspx"
+                      },
+                      {
+                        "title": "Document",
+                        "url": "https://www.cdph.ca.gov/records/manual.docx"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "section-3",
+        "layout": "oneColumn",
+        "emphasis": "none",
+        "columns": [
+          {
+            "id": "1",
+            "width": 12,
+            "webparts": [
+              {
+                "@odata.type": "#microsoft.graph.standardWebPart",
+                "id": "unknown-part",
+                "webPartType": "00000000-0000-0000-0000-000000000099",
+                "data": {
+                  "properties": {
+                    "feature": "unknown"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
