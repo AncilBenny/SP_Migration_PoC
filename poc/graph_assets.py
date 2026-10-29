@@ -248,7 +248,7 @@ def stage_graph_files(plan: dict, output: Path, *, fetcher) -> dict:
             # Provider exceptions can contain bearer tokens / signed URLs.
             # Surface only our vetted diagnostic codes, never its raw message.
             code = str(error).split(':', 1)[0]
-            if not re.fullmatch(r'GRAPH_[A-Z0-9_]{1,64}', code):
+            if not re.fullmatch(r'(?:GRAPH|ENTRA)_[A-Z0-9_]{1,64}', code):
                 code = 'GRAPH_STAGE_FAILED'
             result.update(stageStatus='stage-failed', errorCode=code)
         records.append(result)
