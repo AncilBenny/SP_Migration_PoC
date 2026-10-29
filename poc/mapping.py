@@ -74,8 +74,8 @@ def validate_profile(profile: dict) -> dict:
 def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
     """Render only generic IR; the source may be SharePoint or any future adapter."""
     validate_profile(profile)
-    if not isinstance(ir, dict) or not isinstance(ir.get('tree'), dict):
-        raise ValueError('Expected canonical page IR with tree')
+    from .contracts import validate_ir
+    validate_ir(ir)
     mapping = DEFAULT_COMPONENTS | profile.get('components', {})
     counts: Counter[str] = Counter()
     diagnostics: list[dict] = []
