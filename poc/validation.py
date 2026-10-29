@@ -232,6 +232,7 @@ def ir_to_html(ir: dict, html: str, profile: dict, output_dir: Path | None = Non
     expected_nodes = list(leaf_nodes(ir))
     ids = [n['id'] for n in expected_nodes]
     rules = profile.get('urlMappings', [])
+    roots = profile.get('rootMappings', [])
     base = ir.get('source', {}).get('url', '')
     asset_dir = profile.get('assetDirectory', 'assets')
     statuses = []
@@ -262,13 +263,15 @@ def ir_to_html(ir: dict, html: str, profile: dict, output_dir: Path | None = Non
                 bundled = src.startswith('assets/') and any(a.get('resolvedUrl') == src for a in ir.get('assets', []))
                 if bundled and asset_dir != 'assets':
                     src = asset_dir + '/' + src[len('assets/'):]
+                if not bundled:
+                    src = rewrite_url(src, base, rules, [], node_id=ident, kind='image', root_mappings=roots)
                 expected_images = [{'src': src, 'alt': str(props.get('imageAlt') or '')}]
         elif kind == 'richText':
             facts = html_facts(str(node.get('props', {}).get('safeHtml', '')))
             expected_text = normalized_text(facts.text)
             expected_headings = facts.headings
-            expected_links = [rewrite_url(link, base, rules, [], node_id=ident) for link in facts.links]
-            expected_images = [{'src': rewrite_url(img['src'], base, rules, [], node_id=ident), 'alt': img['alt']} for img in facts.images]
+            expected_links = [rewrite_url(link, base, rules, [], node_id=ident, root_mappings=roots) for link in facts.links]
+            expected_images = [{'src': rewrite_url(img['src'], base, rules, [], node_id=ident, kind='image', root_mappings=roots), 'alt': img['alt']} for img in facts.images]
         elif kind == 'image':
             content = node.get('content') or {}
             expected_text = normalized_text(str(content.get('caption') or ''))
@@ -276,6 +279,8 @@ def ir_to_html(ir: dict, html: str, profile: dict, output_dir: Path | None = Non
             bundled = src.startswith('assets/') and any(a.get('resolvedUrl') == src for a in ir.get('assets', []))
             if bundled and asset_dir != 'assets':
                 src = asset_dir + '/' + src[len('assets/'):]
+            if not bundled:
+                src = rewrite_url(src, base, rules, [], node_id=ident, kind='image', root_mappings=roots)
             expected_images = [{'src': src, 'alt': str(content.get('altText') or '')}]
         elif kind == 'linkList':
             items = node.get('props', {}).get('items', [])
@@ -290,7 +295,7 @@ def ir_to_html(ir: dict, html: str, profile: dict, output_dir: Path | None = Non
                     labels_ok = False
                     break
                 cursor = idx + len(label)
-            expected_links = [rewrite_url(str(x.get('url', '')), base, rules, [], node_id=ident) for x in items]
+            expected_links = [rewrite_url(str(x.get('url', '')), base, rules, [], node_id=ident, root_mappings=roots) for x in items]
             expected_text = None
         else:
             labels_ok = True
