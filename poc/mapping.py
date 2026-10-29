@@ -92,6 +92,8 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
         if kind == 'page':
             return children
         if kind == 'section':
+            if (node.get('props') or {}).get('placement') == 'sidebar':
+                return f'<aside class="target-section target-sidebar" aria-label="Related page content"><div class="target-wrap">{children}</div></aside>'
             return f'<section class="target-section"><div class="target-wrap">{children}</div></section>'
         if kind == 'columns':
             return f'<div class="target-grid">{children}</div>'
@@ -115,7 +117,16 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
         if target == 'pageHeader':
             eyebrow = escape(str(props.get('eyebrow', '')))
             subtitle = f'<p class="target-eyebrow">{eyebrow}</p>' if eyebrow else ''
-            return f'<header class="target-header"{marker}><div class="target-wrap">{subtitle}<h1>{escape(str(data.get("text", "")))}</h1></div></header>'
+            image_url = str(props.get('imageUrl') or '')
+            # The IR hero image is an asset, never an arbitrary script/markup.
+            bundled = image_url.startswith('assets/') and any(a.get('resolvedUrl') == image_url for a in ir.get('assets', []))
+            if bundled and asset_directory != 'assets':
+                target_path = asset_directory + '/' + image_url[len('assets/'):]
+                asset_rewrites.append({'nodeId': str(node.get('id', '')), 'originalPath': image_url, 'targetPath': target_path})
+                image_url = target_path
+            image_url = image_url if bundled else safe_url(image_url, base_url)
+            figure = (f'<img class="target-hero-image" src="{escape(image_url, quote=True)}" alt="{escape(str(props.get("imageAlt") or ""), quote=True)}">' if image_url else '')
+            return f'<header class="target-header"{marker}><div class="target-wrap">{figure}{subtitle}<h1>{escape(str(data.get("text", "")))}</h1></div></header>'
         if target == 'contentBody':
             # Sanitize again: a CIR file may be modified independently of extraction.
             return f'<div class="target-body"{marker}>{rewrite_rich_html(str(props.get("safeHtml", "")), base_url, rules, url_audit, node_id=str(node.get("id", "")))}</div>'
@@ -171,6 +182,7 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
     font = {'system': 'system-ui,sans-serif', 'serif': 'Georgia,serif', 'sans-serif': 'Arial,sans-serif'}[profile.get('font', 'system')]
     variables = ':root{' + ''.join(f'--{k}:{v};' for k, v in palette.items()) + f'--content-width:{width}px;--gap:{gap}px;' + '}'
     css = variables + f'''*{{box-sizing:border-box}}body{{margin:0;color:var(--text);background:var(--background);font:16px/1.55 {font}}}.target-wrap{{max-width:var(--content-width);padding:0 24px;margin:auto}}.target-header{{padding:54px 0;background:var(--primary);color:#fff}}.target-header h1{{font-size:clamp(2rem,4vw,3.25rem);margin:0}}.target-eyebrow{{font-size:13px;letter-spacing:.12em;text-transform:uppercase}}.target-section{{padding:36px 0}}.target-grid{{display:flex;gap:var(--gap);align-items:start}}.target-column{{flex:calc(var(--fraction)*12) 1 0;min-width:0}}.target-body{{overflow-wrap:anywhere}}.target-body h2{{font-size:1.75rem}}.target-body a,.target-resources a,.target-links a{{color:var(--link)}}.target-media{{margin:0}}.target-media img{{max-width:100%;height:auto;display:block}}.target-media figcaption{{font-size:.85rem;color:var(--text)}}.target-resources{{padding:16px 0}}.target-cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}}.target-resource{{padding:18px;border:1px solid #d7dde3;background:var(--surface);border-radius:8px}}.target-resource a{{font-weight:700}}.target-unmapped{{padding:16px;border:2px dashed #777}}@media(max-width:720px){{.target-grid{{flex-direction:column}}.target-column{{width:100%;flex:none}}.target-wrap{{padding:0 16px}}}}'''
+    css += '.target-hero-image{display:block;max-width:100%;height:auto}.target-sidebar{width:100%}'
     report = {'profileId': profile['id'], 'inputFormat': 'canonical-page-ir', 'targetFormat': 'html-css',
               'mappedComponents': dict(counts), 'nodeMappings': node_mappings, 'urlRewrites': url_audit, 'assetRewrites': asset_rewrites, 'mappingWarnings': diagnostics,
               'sourceFidelity': 'not-evaluated-target-redesign-intent',
