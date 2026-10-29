@@ -1,6 +1,8 @@
 """CLI: build original Modern source to CIR, or map an existing CIR to a target."""
 import argparse
 import json
+import os
+import re
 from pathlib import Path
 from .engine import build
 from .mapping import build_target
@@ -36,6 +38,18 @@ def main():
     graph_check = sub.add_parser('graph-verify', help='Independently verify bytes staged by a Graph transport')
     graph_check.add_argument('--report', type=Path, required=True)
     graph_check.add_argument('--staged-root', type=Path, required=True)
+    graph_stage = sub.add_parser('graph-stage', help='Opt-in authorized Graph staging via injected environment token')
+    graph_stage.add_argument('--plan', type=Path, required=True)
+    graph_stage.add_argument('--out', type=Path, required=True)
+    graph_stage.add_argument('--allow-download-host', action='append', required=True,
+                             help='Exact HTTPS redirect host (repeat for each approved CDN host)')
+    graph_stage.add_argument('--token-env', default='MIGRATION_GRAPH_ACCESS_TOKEN',
+                             help='Environment variable containing preauthorized Graph access token')
+    graph_publish = sub.add_parser('graph-publish-local', help='Verify staging and copy to a local output package')
+    graph_publish.add_argument('--report', type=Path, required=True)
+    graph_publish.add_argument('--staged-root', type=Path, required=True)
+    graph_publish.add_argument('--destination', type=Path, required=True)
+    graph_publish.add_argument('--out', type=Path, default=Path('local-publication-report.json'))
     args = parser.parse_args()
     if args.command == 'build':
         result = build(args.input, args.out, Path(__file__).parent / 'assets', style_mode=args.style_mode)
@@ -50,6 +64,22 @@ def main():
         result = resolve_graph_assets(json.loads(args.ir.read_text(encoding='utf-8')), raw, profile)
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
+    elif args.command == 'graph-stage':
+        from .graph_assets import stage_graph_files
+        from .graph_transport import GraphBinaryFetcher
+        if not re.fullmatch(r'[A-Z][A-Z0-9_]{0,63}', args.token_env):
+            raise SystemExit('Invalid token environment variable name')
+        if not os.environ.get(args.token_env):
+            raise SystemExit('Graph access token environment variable is not set')
+        fetcher = GraphBinaryFetcher(lambda: os.environ.get(args.token_env, ''),
+                                     redirect_hosts=set(args.allow_download_host))
+        plan = json.loads(args.plan.read_text(encoding='utf-8'))
+        result = stage_graph_files(plan, args.out, fetcher=fetcher)
+    elif args.command == 'graph-publish-local':
+        from .publication import LocalDirectoryStore, publish_staged_assets
+        report = json.loads(args.report.read_text(encoding='utf-8'))
+        result = publish_staged_assets(report, args.staged_root,
+                                       LocalDirectoryStore(args.destination), output_report=args.out)
     elif args.command == 'graph-verify':
         from .graph_assets import verify_graph_staging
         result = verify_graph_staging(json.loads(args.report.read_text(encoding='utf-8')), args.staged_root)
