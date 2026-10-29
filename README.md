@@ -130,3 +130,17 @@ python -m studio --port 8765
 ```
 
 [See the evidence, contract and explicit remaining release gates](docs/mvp/03-cir-v02-contract-and-richtext.md).
+
+
+## MVP destination roots and asset dependencies
+
+Client profiles now support typed `rootMappings` for **page, image and document** links, with optional `.aspx` removal for page URLs. The `poc/profiles/cdph-root-routing-example.json` profile demonstrates a common source root mapped into three different destination roots (illustrative only). Configure roots directly in Migration Studio under **URL roots · pages / images / documents**. Old `urlMappings` profiles remain supported.
+
+`dependency-manifest.json` records verified bundled bytes and explicitly unverified remote URLs. `acquisition-plan.json` lists what the page would need to fetch. Public-file acquisition requires an explicit allowlist and is **not** performed during web preview or export:
+
+```powershell
+python -m poc pull --ir demo/page.ir.json --profile poc/profiles/cdph-root-routing-example.json --out pulled-assets --plan-only
+python -m poc pull --ir demo/page.ir.json --profile poc/profiles/cdph-root-routing-example.json --out pulled-assets --allow-host www.cdph.ca.gov
+```
+
+The second command is an opt-in public HTTPS fetch, not a tenant-authenticated SharePoint migration. It never uploads to the target host. See [asset routing, acquisition and security limitations](docs/mvp/04-dependency-routes-public-pull.md).
