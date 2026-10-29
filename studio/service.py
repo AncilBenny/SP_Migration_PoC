@@ -141,6 +141,8 @@ class ProjectStore:
 
     def render(self, project_id: str, *, mode: str = 'client', profile: dict | None = None) -> dict:
         project = self._project(project_id)
+        from poc.contracts import validate_ir
+        validate_ir(project.ir)
         if mode not in {'client', 'structural'}:
             raise ValueError('Unknown destination mode')
         if mode == 'client':
