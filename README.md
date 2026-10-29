@@ -144,3 +144,22 @@ python -m poc pull --ir demo/page.ir.json --profile poc/profiles/cdph-root-routi
 ```
 
 The second command is an opt-in public HTTPS fetch, not a tenant-authenticated SharePoint migration. It never uploads to the target host. See [asset routing, acquisition and security limitations](docs/mvp/04-dependency-routes-public-pull.md).
+
+## Graph driveItem asset resolution (offline MVP)
+
+The optional `graph-plan` command reconciles referenced page images and documents
+against **supplied Microsoft Graph v1.0 driveItem metadata**. It is separate
+from the public-only HTTP puller and does **not** ask for tokens, contact a
+SharePoint tenant, or claim any assets were downloaded or published.
+
+```powershell
+python -m poc build --input poc/samples/modern-cdph-routes-demo.json --out demo-graph
+python -m poc graph-plan --ir demo-graph/page.ir.json --drive-items tests/fixtures/graph-drive-items-offline-demo.json --profile poc/profiles/cdph-root-routing-example.json --out demo-graph/graph-acquisition-plan.json
+```
+
+The self-authored fixture deliberately resolves **3 of 4** file references;
+the remaining `.docx` is explicitly unresolved. `poc.graph_assets.stage_graph_files`
+supports an injected **authorized** byte provider for isolated integration tests,
+with SHA-256 and post-write verification; it includes **no live Graph OAuth or
+file-download implementation**. See
+[`docs/mvp/05-microsoft-graph-driveitem-asset-resolver.md`](docs/mvp/05-microsoft-graph-driveitem-asset-resolver.md).
