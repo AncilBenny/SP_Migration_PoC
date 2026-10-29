@@ -38,5 +38,14 @@ jobs:
           with ZipFile(io.BytesIO(studio.export(project['projectId'], 'client'))) as exported:
               assert 'index.html' in exported.namelist()
               assert 'quality-report.json' in exported.namelist()
+          richer = studio.analyze(sample_id='modern-rich-layout')
+          richer_output = studio.render(richer['projectId'], mode='client')
+          assert richer['inventory']['richText'] == 2
+          assert richer_output['quality']['sourceToIr']['passed']
+          assert richer_output['quality']['irToHtml']['passed']
+          assert richer_output['quality']['releaseDecision']['status'] == 'review-required'
+          html = studio.output_file(richer['projectId'], 'client', 'index.html').decode('utf-8')
+          assert 'target-sidebar' in html and 'target-hero-image' in html
+          print('MVP public-contract Graph sample smoke passed (still requires review)')
           print('MVP local workflow smoke passed (not production approval)')
           PY
