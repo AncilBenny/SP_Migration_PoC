@@ -1,0 +1,90 @@
+'use strict';
+const $ = (id) => document.getElementById(id);
+const state = { projectId: null, ir: null, last: null, sourceReport: null };
+const notice = (text, error=false) => { const n=$('notice'); n.textContent=text; n.classList.toggle('error',error); n.hidden=false; clearTimeout(notice.timer); notice.timer=setTimeout(()=>n.hidden=true,5500); };
+async function api(path, payload) {
+  const response = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const result=await response.json();
+  if(!response.ok) throw new Error(result.error||'Request failed');
+  return result;
+}
+function currentProfile(){
+  return {version:'1.0',id:'client-resource-portal',components:{hero:'pageHeader',richText:'contentBody',image:'media',linkList:$('links').value,unknown:'reviewNote'},colors:{primary:$('primary').value,background:'#f2f4f5',surface:'#ffffff',text:'#24323d',link:'#176a87'},layout:{maxWidthPx:1080,gapPx:28},font:'system',labels:{resourcesHeading:$('resourceTitle').value||'Resources'},assetDirectory:'media',urlMappings:[{from:'https://example.org/sites/demo/SitePages/',to:'/knowledge/'}]};
+}
+function setTab(tab){
+  document.querySelectorAll('[data-tab]').forEach(b=>{const active=b.dataset.tab===tab;b.classList.toggle('selected',active);b.setAttribute('aria-selected',String(active));});
+  for(const name of ['preview','ir','quality','mapping']) $(name+'Panel').hidden=name!==tab;
+}
+function fillResult(result){
+  state.last=result;
+  $('results').hidden=false;
+  $('metricStatus').textContent=({blocked:'Blocked','review-required':'Review'})[result.quality.releaseDecision?.status]||'Review';
+  $('qualityJson').textContent=JSON.stringify(result.quality,null,2);
+  $('mappingJson').textContent=JSON.stringify(result.mappingReport,null,2);
+  $('preview').src=result.previewUrl;
+  $('export').onclick=()=>{window.location.href=result.exportUrl;};
+  setTab('preview');
+}
+async function analyze(){
+  try{
+    $('analyze').disabled=true; let payload;
+    const file=$('sourceFile').files[0];
+    if(file){
+      if(file.size>3*1024*1024) throw new Error('File must be under 3 MB');
+      payload={source:JSON.parse(await file.text())};
+    } else {
+      if(!$('sample').value)throw new Error('Select a public sample or upload JSON');
+      payload={sampleId:$('sample').value};
+    }
+    const r=await api('/api/analyze',payload);
+    state.projectId=r.projectId;state.ir=r.ir;state.sourceReport=r.sourceCheck;
+    $('stageBadge').textContent='Source ready';$('projectTitle').textContent=r.label;
+    $('metricNodes').textContent=r.nodeCount;$('metricWarnings').textContent=r.warningCount;
+    $('metricPreserved').textContent=r.sourceCheck.summary?.preserved||0;
+    $('irJson').textContent=JSON.stringify(r.ir,null,2);
+    $('generate').disabled=false;
+    notice('Source analyzed. Configure a target and generate the webpage.');
+    await generate();
+  }catch(e){notice(e.message,true);}finally{$('analyze').disabled=false;}
+}
+async function generate(){
+  if(!state.projectId){return notice('Import source before generating',true);}
+  try{
+    $('generate').disabled=true;
+    const mode=$('mode').value;
+    const response=await api('/api/render',{projectId:state.projectId,mode,profile:mode==='client'?currentProfile():null});
+    fillResult(response);
+    const gate=response.quality.releaseDecision;
+    notice(gate?.status==='blocked'?'Output has blocking content/asset issues.': 'Output generated. Manual review is required; supported-content checks are not visual fidelity.',gate?.status==='blocked');
+  }catch(e){notice(e.message,true);}finally{$('generate').disabled=false;}
+}
+async function init(){
+  try{
+    const response=await fetch('/api/capabilities');
+    if(response.ok){
+      const caps=await response.json();
+      const list=$('engineReadiness');list.replaceChildren();
+      for(const item of caps.engineCapabilities){
+        const li=document.createElement('li');
+        const title=document.createElement('span');title.textContent=item.name;
+        const maturity=document.createElement('em');maturity.textContent=item.maturity;
+        li.append(title,maturity);list.append(li);
+      }
+    }
+  }catch { /* Status remains labeled as prototype in sidebar. */ }
+  try{
+    const r=await fetch('/api/samples'); if(!r.ok)throw new Error('Cannot load samples');
+    const data=await r.json();$('sample').replaceChildren();
+    for(const sample of data.samples){const o=document.createElement('option');o.value=sample.id;o.textContent=sample.title+' — '+sample.description;$('sample').append(o);}
+    $('sample').value='modern-demo';
+  }catch(e){notice(e.message,true);}
+  $('analyze').addEventListener('click',analyze);
+  $('generate').addEventListener('click',generate);
+  $('rebuild').addEventListener('click',generate);
+  $('mode').addEventListener('change',()=>{$('mappingControls').hidden=$('mode').value==='structural';});
+  $('primary').addEventListener('input',()=>{$('colorLabel').textContent=$('primary').value;});
+  $('sourceFile').addEventListener('change',()=>{$('fileName').textContent=$('sourceFile').files[0]?.name||'No custom file selected';});
+  document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+  $('copyIr').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('irJson').textContent);notice('Canonical JSON copied');}catch{notice('Clipboard unavailable; select and copy the JSON manually',true);}});
+}
+document.addEventListener('DOMContentLoaded',init);
