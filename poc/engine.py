@@ -68,6 +68,9 @@ class CleanHTML(HTMLParser):
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]):
         self.handle_starttag(tag, attrs)
+        # A self-closing blocked element must not hide subsequent authored text.
+        if tag in {"script", "style", "iframe", "object", "svg", "form"}:
+            self.handle_endtag(tag)
 
     def handle_endtag(self, tag: str):
         if tag in {"script", "style", "iframe", "object", "svg", "form"}:
@@ -125,6 +128,24 @@ def normalize(page: dict, *, asset_map: dict[str, str] | None = None) -> dict:
     diagnostics: list[dict] = []
     counts = Counter()
     page_id = str(page.get("id") or "page")
+    evidence = str(page.get("_captureConfidence") or "synthetic")
+    if evidence not in {"api", "rendered", "heuristic", "synthetic"}:
+        evidence = "heuristic"
+    used_part_ids: set[str] = set()
+
+    def part_list(parent: dict, path: str) -> list[dict]:
+        """Prevent silently dropping controls when an expanded relationship is absent."""
+        if "webparts" not in parent:
+            diagnostics.append({"severity": "warning", "code": "WEBPART_RELATIONSHIP_NOT_EXPANDED",
+                                "sourcePath": path, "message": "No expanded webparts relationship; completeness unknown"})
+            return []
+        parts = parent["webparts"]
+        if not isinstance(parts, list):
+            raise ValueError("Expected Graph webparts relationship array at " + path)
+        if any(not isinstance(part, dict) for part in parts):
+            raise ValueError("Non-object web part in " + path)
+        return parts
+
 
     def asset(original: str, id: str, alt: str) -> str:
         resolved = safe_url(original, base_url)
@@ -141,7 +162,15 @@ def normalize(page: dict, *, asset_map: dict[str, str] | None = None) -> dict:
 
     def content_part(part: dict, index: int) -> dict:
         part_id = str(part.get("id") or f"part-{index}")
-        source_ref = {"webPartId": part_id, "evidence": "synthetic"}
+        source_ref = {"webPartId": part_id, "evidence": evidence}
+        if part_id in used_part_ids:
+            diagnostics.append({"severity": "error", "code": "DUPLICATE_WEBPART_ID",
+                                "nodeId": part_id, "message": "Non-unique source web part ID"})
+        used_part_ids.add(part_id)
+        if part.get("containerTextWebPartId"):
+            source_ref["path"] = "inline-of:" + str(part["containerTextWebPartId"])
+            diagnostics.append({"severity": "warning", "code": "INLINE_WEBPART_PLACEMENT_UNVERIFIED",
+                                "nodeId": part_id, "message": "Inline web part is linked to a parent text part; in-text positioning requires review"})
         if part.get("_capturePointer"):
             source_ref["capturePointer"] = str(part["_capturePointer"])
         odata = str(part.get("@odata.type", "")).lower().lstrip("#")
@@ -158,12 +187,17 @@ def normalize(page: dict, *, asset_map: dict[str, str] | None = None) -> dict:
             image_url = processed_value(data, "imageSources", "imageSource") or props.get("imageSource", "") or props.get("src", "")
             alt = str(props.get("altText") or "")
             src = asset(str(image_url), "asset-" + part_id, alt)
-            counts["image"] += 1
             if not src:
                 return {"id": part_id, "kind": "unknown", "sourceRef": source_ref, "props": {"reason": "Image source missing"}, "fidelity": {"status": "unsupported", "reason": "Image URL missing"}}
+            counts["image"] += 1
             if not alt:
                 diagnostics.append({"severity": "warning", "code": "MISSING_ALT_TEXT", "nodeId": part_id, "message": "Image has no alt text; review whether it is decorative"})
-            return {"id": part_id, "kind": "image", "content": {"assetId": "asset-" + part_id, "altText": alt, "caption": str(props.get("captionText") or "")}, "props": {"src": src}, "sourceRef": source_ref, "fidelity": {"status": "approximate", "reason": "Source cropping and rendering options not reproduced"}}
+            image_props = {"src": src}
+            for src_key, dest_key in (("imgWidth", "sourceWidthPx"), ("imgHeight", "sourceHeightPx"),
+                                      ("alignment", "sourceAlignment")):
+                if src_key in props and isinstance(props[src_key], (int, float, str)):
+                    image_props[dest_key] = props[src_key]
+            return {"id": part_id, "kind": "image", "content": {"assetId": "asset-" + part_id, "altText": alt, "caption": str(props.get("captionText") or "")}, "props": image_props, "sourceRef": source_ref, "fidelity": {"status": "approximate", "reason": "Source cropping and rendering options not reproduced"}}
         if part_type == QUICKLINKS_ID:
             links = []
             for item in props.get("items", []):
@@ -183,26 +217,79 @@ def normalize(page: dict, *, asset_map: dict[str, str] | None = None) -> dict:
     tree = {"id": page_id + "-root", "kind": "page", "children": []}
     title_area = page.get("titleArea") or {}
     if title_area:
-        tree["children"].append({"id": "title-area", "kind": "hero", "props": {"eyebrow": str(title_area.get("textAboveTitle") or ""), "variant": str(title_area.get("layout") or "plain")}, "content": {"text": str(page.get("title") or title_area.get("title") or "Untitled")}, "fidelity": {"status": "approximate", "reason": "Title area layout simplified"}})
-    for section_index, section in enumerate(page["canvasLayout"].get("horizontalSections", [])):
+        visible_eyebrow = title_area.get("showTextBlockAboveTitle") is not False
+        hero_props = {
+            "eyebrow": str(title_area.get("textAboveTitle") or "") if visible_eyebrow else "",
+            "sourceTextAboveTitle": str(title_area.get("textAboveTitle") or ""),
+            "variant": str(title_area.get("layout") or "plain"),
+            "alignment": str(title_area.get("textAlignment") or "left"),
+            "gradientEnabled": bool(title_area.get("enableGradientEffect") or False),
+            "showAuthor": title_area.get("showAuthor"),
+            "showPublishedDate": title_area.get("showPublishedDate"),
+        }
+        if title_area.get("imageWebUrl"):
+            hero_props["imageUrl"] = asset(str(title_area["imageWebUrl"]), "asset-title-area", str(title_area.get("alternativeText") or ""))
+            hero_props["imageAlt"] = str(title_area.get("alternativeText") or "")
+        tree["children"].append({"id": "title-area", "kind": "hero", "props": hero_props,
+                                 "content": {"text": str(page.get("title") or title_area.get("title") or "Untitled")},
+                                 "fidelity": {"status": "approximate", "reason": "Title area appearance and author/date rendering need source visual evidence"}})
+
+    horizontal = page["canvasLayout"].get("horizontalSections") or []
+    if not isinstance(horizontal, list):
+        raise ValueError("Expected horizontalSections array")
+    for section_index, section in enumerate(horizontal):
+        if not isinstance(section, dict):
+            raise ValueError("Expected horizontalSection object")
         cols = section.get("columns") or []
-        total_width = sum(int(c.get("width") or 0) for c in cols)
+        if not isinstance(cols, list):
+            raise ValueError("Expected horizontalSection columns array")
+        spans = []
+        for col in cols:
+            if not isinstance(col, dict) or type(col.get("width")) is not int or not 1 <= col["width"] <= 12:
+                raise ValueError("Modern Graph column width must be an integer 1..12")
+            spans.append(col["width"])
+        total_width = sum(spans)
         if total_width != 12:
-            diagnostics.append({"severity": "warning", "code": "INVALID_GRID", "message": f"Section {section_index + 1} uses {total_width} of 12 grid units"})
-        section_node = {"id": str(section.get("id") or f"section-{section_index}"), "kind": "section", "order": section_index, "props": {"emphasis": str(section.get("emphasis") or "none")}, "children": []}
+            diagnostics.append({"severity": "warning", "code": "INVALID_GRID",
+                                "message": f"Section {section_index + 1} uses {total_width} of 12 grid units"})
+        section_node = {"id": str(section.get("id") or f"section-{section_index}"),
+                        "kind": "section", "order": section_index,
+                        "props": {"emphasis": str(section.get("emphasis") or "none"),
+                                  "sourceLayout": str(section.get("layout") or "unknown")}, "children": []}
         columns = {"id": f"columns-{section_index}", "kind": "columns", "children": []}
         for ci, column in enumerate(cols):
-            span = int(column.get("width") or 12)
-            column_node = {"id": f"col-{section_index}-{ci}", "kind": "column", "order": ci, "layout": {"widthFraction": min(1, max(1, span) / 12)}, "children": []}
-            for pi, part in enumerate(column.get("webparts") or []):
+            span = spans[ci]
+            column_node = {"id": f"col-{section_index}-{ci}", "kind": "column", "order": ci,
+                           "layout": {"widthFraction": span / 12, "breakpointHints": {"sourceGridSpan": span}}, "children": []}
+            parts = part_list(column, f"canvasLayout.horizontalSections[{section_index}].columns[{ci}]")
+            for pi, part in enumerate(parts):
                 column_node["children"].append(content_part(part, pi))
             columns["children"].append(column_node)
         section_node["children"].append(columns)
         tree["children"].append(section_node)
-    if page["canvasLayout"].get("verticalSection"):
-        diagnostics.append({"severity": "warning", "code": "UNSUPPORTED_VERTICAL_SECTION", "message": "Right-side vertical section preserved only as a warning in this PoC"})
-    if not page["canvasLayout"].get("horizontalSections"):
-        diagnostics.append({"severity": "warning", "code": "NO_HORIZONTAL_SECTIONS", "message": "No horizontal sections available; this does not establish an empty source page"})
+
+    vertical = page["canvasLayout"].get("verticalSection")
+    if vertical is not None:
+        if not isinstance(vertical, dict):
+            raise ValueError("Expected Graph verticalSection object")
+        # Preserve the source's separate sidebar region; its exact responsive
+        # placement is an output/layout concern and remains explicitly unverified.
+        sidebar_parts = part_list(vertical, "canvasLayout.verticalSection")
+        sidebar = {"id": str(vertical.get("id") or "vertical-section"), "kind": "section",
+                   "order": len(horizontal), "props": {"sourceLayout": "verticalSection",
+                   "placement": "sidebar", "emphasis": str(vertical.get("emphasis") or "none")},
+                   "children": [{"id": "vertical-columns", "kind": "columns", "children": [
+                       {"id": "vertical-column", "kind": "column", "order": 0,
+                        "layout": {"widthFraction": 1, "breakpointHints": {"sourceRegion": "verticalSection"}},
+                        "children": [content_part(part, pi) for pi, part in enumerate(sidebar_parts)]}]}]}
+        tree["children"].append(sidebar)
+        if sidebar_parts:
+            diagnostics.append({"severity": "warning", "code": "VERTICAL_LAYOUT_APPROXIMATE",
+                                "sourcePath": "canvasLayout.verticalSection",
+                                "message": "Sidebar content preserved; its source page placement and responsive behavior require visual verification"})
+    if not horizontal and vertical is None:
+        diagnostics.append({"severity": "warning", "code": "NO_SECTIONS",
+                            "message": "No sections available; this does not establish an empty source page"})
     return {"schemaVersion": "0.1.0", "source": {"platform": "sharepoint", "pageModel": "modern", "url": base_url or "https://example.org/unknown", "capturedAt": "2026-10-28T00:00:00Z", "captureMethod": str(page.get("_captureMethod") or "manual-fixture"), "evidenceConfidence": str(page.get("_captureConfidence") or "synthetic")}, "page": {"id": page_id, "title": str(page.get("title") or "Untitled"), "description": str(page.get("description") or "")}, "tree": tree, "assets": assets, "diagnostics": diagnostics, "extensions": {"demo": {"counts": dict(counts), "note": "Adapted public documentation fixture; not a live SharePoint export"}}}
 
 
@@ -214,8 +301,15 @@ def render_node(node: dict) -> str:
     marker = f' data-ir-id="{escape(str(node.get("id", "")), quote=True)}"'
     if kind == "hero":
         eyebrow = escape(node.get("props", {}).get("eyebrow", ""))
-        return f'<header class="hero"{marker}><div class="wrap"><p class="eyebrow">{eyebrow}</p><h1>{escape(node.get("content", {}).get("text", ""))}</h1></div></header>'
+        props = node.get("props") or {}
+        image_url = props.get("imageUrl") or ""
+        image = f'<img class="hero-image" src="{escape(str(image_url), quote=True)}" alt="{escape(str(props.get("imageAlt") or ""), quote=True)}">' if image_url else ""
+        eyebrow_html = f'<p class="eyebrow">{eyebrow}</p>' if eyebrow else ""
+        return f'<header class="hero"{marker}><div class="wrap">{image}{eyebrow_html}<h1>{escape(node.get("content", {}).get("text", ""))}</h1></div></header>'
     if kind == "section":
+        placement = (node.get("props") or {}).get("placement")
+        if placement == "sidebar":
+            return f'<aside class="section vertical-section" aria-label="Related page content"><div class="wrap">{children}</div></aside>'
         return f'<section class="section"><div class="wrap">{children}</div></section>'
     if kind == "columns":
         return f'<div class="columns">{children}</div>'
@@ -274,7 +368,8 @@ def build(source: Path, out: Path, assets_dir: Path | None = None, *, style_mode
             f'<meta name="description" content="{description}"><title>{title}</title>'
             f'<link rel="stylesheet" href="style.css"></head><body><main>{body}</main></body></html>')
     (out / "index.html").write_text(html, encoding="utf-8")
-    (out / "style.css").write_text(STRUCTURAL_CSS if style_mode == "structural" else DEMO_CSS, encoding="utf-8")
+    (out / "style.css").write_text((STRUCTURAL_CSS if style_mode == "structural" else DEMO_CSS) +
+                                   ".hero-image{display:block;max-width:100%;height:auto}.vertical-section{width:100%}", encoding="utf-8")
     ir_text = json.dumps(ir, indent=2) + "\n"
     (out / "page.ir.json").write_text(ir_text, encoding="utf-8")
     counts = Counter()
@@ -283,7 +378,8 @@ def build(source: Path, out: Path, assets_dir: Path | None = None, *, style_mode
         for child in n.get("children", []):
             walk(child)
     walk(ir["tree"])
-    total_webparts = sum(len(col.get("webparts") or []) for section in doc["canvasLayout"].get("horizontalSections", []) for col in section.get("columns") or [])
+    total_webparts = (sum(len(col.get("webparts") or []) for section in doc["canvasLayout"].get("horizontalSections", []) for col in section.get("columns") or [])
+                      + len((doc["canvasLayout"].get("verticalSection") or {}).get("webparts") or []))
     supported = sum(counts[k] for k in ("richText", "image", "linkList"))
     report = {"source": str(source), "status": "demo-generated", "styleMode": style_mode, "visualFidelity": "unverified-no-rendered-source-baseline", "webPartsFound": total_webparts, "mappedParts": supported, "unmappedParts": counts["unknown"], "coveragePercent": round(100 * supported / total_webparts, 1) if total_webparts else 100.0, "components": dict(counts), "assets": len(ir["assets"]), "warnings": ir["diagnostics"], "limitations": ["Public documentation-adapted fixture, not an authenticated tenant extraction", "Modern Graph canvas subset only", "Source screenshots/CSS unavailable; generated styling is not a visual replica", "No dynamic behavior migration"]}
     target_audit = ir_to_html(ir, html, {}, out)
