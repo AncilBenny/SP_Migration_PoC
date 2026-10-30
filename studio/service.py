@@ -248,6 +248,25 @@ class ProjectStore:
             'files': sorted(files),
         }
 
+    def review_stylesheet(self, project_id: str, mode: str, source_css: str) -> dict:
+        """Analyze supplied CSS against a generated page, without applying it.
+
+        Keep a separate review artifact in the export, never change the CIR or
+        automatically inject reviewed candidate CSS into the destination.
+        """
+        if mode not in {'client', 'structural'}:
+            raise ValueError('Unknown output mode')
+        project = self._project(project_id)
+        output = project.outputs.get(mode)
+        if output is None:
+            raise ValueError('Generate a destination before reviewing a stylesheet')
+        from poc.css_workbench import compile_reviewed_css
+        css, report = compile_reviewed_css(source_css, output.files['index.html'].decode('utf-8'))
+        output.files['reviewed-candidates.css'] = css.encode('utf-8')
+        output.files['css-review.json'] = (json.dumps(report, indent=2) + '\n').encode('utf-8')
+        return {'report': report, 'css':css, 'applied':False,
+                'note':'Review-only. No source CSS is automatically applied to the migrated page.'}
+
     def output_file(self, project_id: str, mode: str, file_path: str) -> bytes:
         project = self._project(project_id)
         result = project.outputs.get(mode)
