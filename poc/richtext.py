@@ -16,7 +16,7 @@ from urllib.parse import urljoin, urlsplit
 ALLOWED_TAGS = frozenset({
     'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'b', 'em', 'i',
     'ul', 'ol', 'li', 'a', 'br', 'blockquote', 'code', 'pre', 'table',
-    'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'img', 'figure', 'figcaption',
+    'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'img', 'figure', 'figcaption', 'span',
 })
 VOID_TAGS = frozenset({'br', 'img'})
 # A blocked subtree must never be flattened into executable descendants/text.
@@ -79,6 +79,8 @@ class SanitizeResult:
     removed_attributes: int
     rejected_urls: int
     kept_inline_images: int
+    style_rules: tuple[dict, ...] = ()
+    dropped_style_properties: tuple[str, ...] = ()
 
     @property
     def changed_for_safety(self) -> bool:
@@ -86,7 +88,7 @@ class SanitizeResult:
 
 
 class _RichTextParser(HTMLParser):
-    def __init__(self, base_url: str):
+    def __init__(self, base_url: str, *, compile_styles: bool = False):
         super().__init__(convert_charrefs=True)
         self.base_url = base_url
         self.parts: list[str] = []
@@ -96,6 +98,9 @@ class _RichTextParser(HTMLParser):
         self.removed_attributes = 0
         self.rejected_urls = 0
         self.kept_images = 0
+        self.compile_styles = compile_styles
+        self.style_rules: dict[str, dict] = {}
+        self.dropped_style_properties: list[str] = []
 
     def handle_starttag(self, tag, attrs):
         if tag in BLOCKED_TAGS:
@@ -132,6 +137,19 @@ class _RichTextParser(HTMLParser):
                 value = attr.get(key, '')
                 if value and value.isascii() and value.isdecimal() and 1 <= int(value) <= 20:
                     keep[key] = str(int(value))
+        if self.compile_styles and isinstance(attr.get('style'), str):
+            from .style_compiler import compile_declarations, class_for_style
+            declarations, rejected = compile_declarations(attr['style'])
+            self.dropped_style_properties.extend(rejected)
+            if declarations:
+                name = class_for_style(declarations)
+                self.style_rules[name] = {'className': name, 'declarations': declarations}
+                keep['class'] = name
+        elif not self.compile_styles and attr.get('class') is not None:
+            # Only compiler-generated style classes may survive re-sanitization.
+            from .style_compiler import STYLE_CLASS
+            if isinstance(attr['class'], str) and STYLE_CLASS.fullmatch(attr['class']):
+                keep['class'] = attr['class']
         self.removed_attributes += sum(1 for key, _ in attrs if key not in keep)
         extras = ''.join(f' {key}="{escape(value, quote=True)}"' for key, value in keep.items())
         self.parts.append(f'<{tag}{extras}>')
@@ -166,15 +184,17 @@ class _RichTextParser(HTMLParser):
         while self.stack:
             self.parts.append(f'</{self.stack.pop()}>')
         return SanitizeResult(''.join(self.parts), dict(self.removed), self.removed_attributes,
-                              self.rejected_urls, self.kept_images)
+                              self.rejected_urls, self.kept_images,
+                              tuple(self.style_rules[k] for k in sorted(self.style_rules)),
+                              tuple(self.dropped_style_properties))
 
 
-def sanitize_with_audit(raw: str, base_url: str = '') -> SanitizeResult:
+def sanitize_with_audit(raw: str, base_url: str = '', *, compile_styles: bool = False) -> SanitizeResult:
     if not isinstance(raw, str):
         raw = ''
     if len(raw) > MAX_HTML_LENGTH:
         raise ValueError('Rich text exceeds the maximum supported length')
-    parser = _RichTextParser(base_url)
+    parser = _RichTextParser(base_url, compile_styles=compile_styles)
     parser.feed(raw)
     parser.close()
     return parser.result()
