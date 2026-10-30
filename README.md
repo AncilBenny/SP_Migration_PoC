@@ -174,13 +174,19 @@ See [Graph transport security and publication states](docs/mvp/06-authorized-gra
 
 ## Optional Entra delegated authorization (MVP milestone 07)
 
-For **authorized operator-driven Graph file staging**, register an approved **single-tenant public desktop client**, then use MSAL browser-based login with a delegated read scope. The default is `Files.Read`; this adapter rejects all broad, write and `.default` scopes. `Sites.Selected` additionally requires resource grants and approved consent—requesting a scope does **not** prove access.
+For **authorized operator-driven Graph file staging**, use an approved **single-tenant public desktop client registration**, a browser-based MSAL login, and a delegated read scope. The default is `Files.Read`; all broad, write and `.default` scopes are rejected by this narrowly scoped adapter. `Sites.Selected` requires independent admin consent and resource-level assignment; a requested scope is **not proof** of access.
 
 ```powershell
 python -m pip install -r requirements-auth.txt
-# Set MIGRATION_ENTRA_TENANT_ID and MIGRATION_ENTRA_CLIENT_ID via your approved local process.
+# Set MIGRATION_ENTRA_TENANT_ID and MIGRATION_ENTRA_CLIENT_ID outside the repository.
 python -m poc graph-auth-check
 python -m poc graph-stage --plan path/to/authorized-plan.json --out private-staged --allow-download-host your-approved-download-host.example --auth-mode entra-delegated
 ```
 
-`graph-auth-check` makes **no network calls**, prints no identifiers or tokens, and explicitly reports that permissions remain unverified. An existing env-token mode remains available for separately authorized operators. Synthetic metadata fixtures are **not valid live Graph download plans**. See [least-privilege design, operator steps and limitations](docs/mvp/07-entra-least-privilege-authentication.md). This is an operator tool, **not a hosted enterprise identity system**.
+`graph-auth-check` makes **no** network requests and never returns a token. The existing environment-token staging option remains available for separately authorized integrations. **Do not use synthetic Graph catalog IDs for a live stage.** See [MSAL & least-privilege design, operator requirements and limitations](docs/mvp/07-entra-least-privilege-authentication.md). This is a local operator adapter, **not a hosted enterprise identity system**.
+
+## MVP milestone 08 — Clean website presentation compiler
+
+The local Studio now has a **Styles & scripts cleanup** sample, an **Authored stylesheet policy** selector, and a **Styles & scripts** report tab. Safe inline rich-text styles are parsed with `tinycss2`, deduplicated into deterministic classes, and optionally exported as `source-styles.css`. The default client mapping **intentionally uses client styles**, while structural output preserves reviewed source formatting. Scripts, handlers, and embedded stylesheets are inventoried for manual mapping and are never copied as executable output. Every output receives `presentation-report.json`.
+
+Install compiler dependency: `python -m pip install -r requirements-dev.txt`. This is a **narrow inline-declaration compiler**, not full SPFx CSS extraction, stylesheet dependency processing, arbitrary JavaScript translation, visual-parity verification, or production-ready HTML sanitization. For architecture, limits, and research evidence see [docs/mvp/08-clean-presentation-compiler.md](docs/mvp/08-clean-presentation-compiler.md).
