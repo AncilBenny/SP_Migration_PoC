@@ -86,7 +86,7 @@ class StudioHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlsplit(self.path).path
-        if path not in {'/api/analyze', '/api/render'}:
+        if path not in {'/api/analyze', '/api/render', '/api/css-workbench'}:
             return self.json_response(404, {'error': 'Not found'})
         if not self.headers.get('Content-Type', '').lower().startswith('application/json'):
             return self.json_response(415, {'error': 'Expected application/json'})
@@ -97,7 +97,13 @@ class StudioHandler(BaseHTTPRequestHandler):
             req = json.loads(self.rfile.read(size))
             if not isinstance(req, dict):
                 raise ValueError('Expected a JSON object')
-            if path == '/api/analyze':
+            if path == '/api/css-workbench':
+                project_id = req.get('projectId')
+                css = req.get('css')
+                if not isinstance(project_id, str) or not isinstance(css, str):
+                    raise ValueError('Expected projectId and CSS text')
+                result = self.server.projects.review_stylesheet(project_id, req.get('mode', 'client'), css)
+            elif path == '/api/analyze':
                 result = self.server.projects.analyze(sample_id=req.get('sampleId'), source=req.get('source'))
             else:
                 project_id = req.get('projectId')
