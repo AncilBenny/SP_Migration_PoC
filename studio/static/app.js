@@ -91,6 +91,16 @@ async function init(){
   $('primary').addEventListener('input',()=>{$('colorLabel').textContent=$('primary').value;});
   $('sourceFile').addEventListener('change',()=>{$('fileName').textContent=$('sourceFile').files[0]?.name||'No custom file selected';});
   document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+  $('reviewCss').addEventListener('click',async()=>{
+    if(!state.projectId || !state.last) return notice('Generate a page first',true);
+    const file=$('cssFile').files[0];
+    if(!file || file.size>200000) return notice('Choose a CSS file smaller than 200 KB',true);
+    try {
+      const result=await api('/api/css-workbench',{projectId:state.projectId,mode:state.last.mode,css:await file.text()});
+      $('cssReviewJson').textContent=JSON.stringify(result.report,null,2);
+      notice('CSS review complete. Candidates are included in export but NOT applied to the page.');
+    }catch(error){notice(error.message,true);}
+  });
   $('copyIr').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('irJson').textContent);notice('Canonical JSON copied');}catch{notice('Clipboard unavailable; select and copy the JSON manually',true);}});
 }
 document.addEventListener('DOMContentLoaded',init);
