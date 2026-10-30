@@ -44,17 +44,20 @@ def main():
     graph_stage.add_argument('--allow-download-host', action='append', required=True,
                              help='Exact HTTPS redirect host (repeat for each approved CDN host)')
     graph_stage.add_argument('--auth-mode', choices=['env-token', 'entra-delegated'], default='env-token',
-                             help='Explicit token provider: environment token or MSAL browser/PKCE')
-    graph_stage.add_argument('--tenant-env', default='MIGRATION_ENTRA_TENANT_ID')
-    graph_stage.add_argument('--client-env', default='MIGRATION_ENTRA_CLIENT_ID')
+                             help='Explicit token provider: legacy env token or MSAL browser/PKCE')
+    graph_stage.add_argument('--tenant-env', default='MIGRATION_ENTRA_TENANT_ID',
+                             help='Environment variable containing tenant UUID, not a secret')
+    graph_stage.add_argument('--client-env', default='MIGRATION_ENTRA_CLIENT_ID',
+                             help='Environment variable containing registered public-client UUID')
     graph_stage.add_argument('--login-hint-env', default=None,
-                             help='Optional local env variable for account selection')
+                             help='Optional local environment variable for account selection')
     graph_stage.add_argument('--scope', choices=['Files.Read', 'Sites.Selected', 'Files.SelectedOperations.Selected'],
-                             default='Files.Read')
-    graph_stage.add_argument('--silent-only', action='store_true', help='Never launch browser login')
+                             default='Files.Read', help='Narrow delegated Graph read permission')
+    graph_stage.add_argument('--silent-only', action='store_true',
+                             help='Never launch an interactive browser login')
     graph_stage.add_argument('--token-env', default='MIGRATION_GRAPH_ACCESS_TOKEN',
                              help='Environment variable containing preauthorized Graph access token')
-    auth_check = sub.add_parser('graph-auth-check', help='Offline Entra delegated-read config check (no login)')
+    auth_check = sub.add_parser('graph-auth-check', help='Offline Entra delegated-read configuration readiness (no login)')
     auth_check.add_argument('--tenant-env', default='MIGRATION_ENTRA_TENANT_ID')
     auth_check.add_argument('--client-env', default='MIGRATION_ENTRA_CLIENT_ID')
     auth_check.add_argument('--scope', choices=['Files.Read', 'Sites.Selected', 'Files.SelectedOperations.Selected'], default='Files.Read')
@@ -63,11 +66,28 @@ def main():
     graph_publish.add_argument('--staged-root', type=Path, required=True)
     graph_publish.add_argument('--destination', type=Path, required=True)
     graph_publish.add_argument('--out', type=Path, default=Path('local-publication-report.json'))
+    stylesheet = sub.add_parser('css-workbench', help='Offline review of source CSS into scoped safe candidates; never auto-apply')
+    stylesheet.add_argument('--css', type=Path, required=True, help='A locally supplied CSS file; no imports fetched')
+    stylesheet.add_argument('--html', type=Path, help='Generated index.html for observed semantic tags')
+    stylesheet.add_argument('--out', type=Path, default=Path('css-review'))
+    browser = sub.add_parser('browser-audit', help='Optional offline Chromium screenshots + responsive checks; no source baseline')
+    browser.add_argument('--html', type=Path, required=True)
+    browser.add_argument('--out', type=Path, default=Path('browser-review'))
     args = parser.parse_args()
     if args.command == 'build':
         result = build(args.input, args.out, Path(__file__).parent / 'assets', style_mode=args.style_mode)
     elif args.command == 'map':
         result = build_target(args.ir, args.profile, args.out, strict=args.strict)
+    elif args.command == 'css-workbench':
+        from .css_workbench import compile_reviewed_css
+        css, result = compile_reviewed_css(args.css.read_text(encoding='utf-8'),
+                                           args.html.read_text(encoding='utf-8') if args.html else '')
+        args.out.mkdir(parents=True, exist_ok=True)
+        (args.out / 'reviewed-candidates.css').write_text(css, encoding='utf-8')
+        (args.out / 'css-review.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
+    elif args.command == 'browser-audit':
+        from .browser_audit import audit_browser_page
+        result = audit_browser_page(args.html, args.out)
     elif args.command == 'graph-plan':
         from .graph_assets import load_graph_metadata, resolve_graph_assets
         from .mapping import validate_profile
