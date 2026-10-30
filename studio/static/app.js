@@ -9,11 +9,11 @@ async function api(path, payload) {
   return result;
 }
 function currentProfile(){
-  return {version:'1.0',id:'client-resource-portal',components:{hero:'pageHeader',richText:'contentBody',image:'media',linkList:$('links').value,unknown:'reviewNote'},colors:{primary:$('primary').value,background:'#f2f4f5',surface:'#ffffff',text:'#24323d',link:'#176a87'},layout:{maxWidthPx:1080,gapPx:28},font:'system',labels:{resourcesHeading:$('resourceTitle').value||'Resources'},assetDirectory:'media',urlMappings:[],rootMappings:['page','image','document'].map(kind=>({kind,sourcePrefix:$('sourceRoot').value.trim(),targetPrefix:$(kind==='page'?'pageRoot':kind==='image'?'imageRoot':'documentRoot').value.trim(),...(kind==='page'?{stripAspx:$('stripAspx').checked}:{})}))};
+  return {version:'1.0',id:'client-resource-portal',components:{hero:'pageHeader',richText:'contentBody',image:'media',linkList:$('links').value,unknown:'reviewNote'},colors:{primary:$('primary').value,background:'#f2f4f5',surface:'#ffffff',text:'#24323d',link:'#176a87'},layout:{maxWidthPx:1080,gapPx:28},font:'system',labels:{resourcesHeading:$('resourceTitle').value||'Resources'},assetDirectory:'media',stylePolicy:$('stylePolicy').value,urlMappings:[],rootMappings:['page','image','document'].map(kind=>({kind,sourcePrefix:$('sourceRoot').value.trim(),targetPrefix:$(kind==='page'?'pageRoot':kind==='image'?'imageRoot':'documentRoot').value.trim(),...(kind==='page'?{stripAspx:$('stripAspx').checked}:{})}))};
 }
 function setTab(tab){
   document.querySelectorAll('[data-tab]').forEach(b=>{const active=b.dataset.tab===tab;b.classList.toggle('selected',active);b.setAttribute('aria-selected',String(active));});
-  for(const name of ['preview','ir','quality','mapping']) $(name+'Panel').hidden=name!==tab;
+  for(const name of ['preview','ir','quality','mapping','presentation']) $(name+'Panel').hidden=name!==tab;
 }
 function fillResult(result){
   state.last=result;
@@ -21,6 +21,7 @@ function fillResult(result){
   $('metricStatus').textContent=({blocked:'Blocked','review-required':'Review'})[result.quality.releaseDecision?.status]||'Review';
   $('qualityJson').textContent=JSON.stringify(result.quality,null,2);
   $('mappingJson').textContent=JSON.stringify(result.mappingReport,null,2);
+  $('presentationJson').textContent=JSON.stringify(result.quality.presentation||{},null,2);
   $('preview').src=result.previewUrl;
   $('export').onclick=()=>{window.location.href=result.exportUrl;};
   setTab('preview');
