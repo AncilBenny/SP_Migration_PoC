@@ -121,10 +121,11 @@ def rewrite_url(value: str, base: str, rules: list, audit: list, *, node_id: str
 
 class LinkHTMLMapper(HTMLParser):
     """Re-serialize sanitized rich HTML while applying destination URL rules."""
-    def __init__(self, base: str, rules: list, audit: list, node_id: str, root_mappings: list | None = None):
+    def __init__(self, base: str, rules: list, audit: list, node_id: str, root_mappings: list | None = None, *, keep_source_styles: bool = False):
         super().__init__(convert_charrefs=True)
         self.base, self.rules, self.audit, self.node_id, self.root_mappings = base, rules, audit, node_id, root_mappings
         self.parts: list[str] = []
+        self.keep_source_styles = keep_source_styles
 
     def handle_starttag(self, tag: str, attrs):
         from .richtext import ALLOWED_TAGS
@@ -132,6 +133,10 @@ class LinkHTMLMapper(HTMLParser):
             return
         attrs = dict(attrs)
         retained = {}
+        if self.keep_source_styles:
+            from .style_compiler import STYLE_CLASS
+            if isinstance(attrs.get('class'), str) and STYLE_CLASS.fullmatch(attrs['class']):
+                retained['class'] = attrs['class']
         if tag == 'a' and attrs.get('href'):
             href = rewrite_url(attrs['href'], self.base, self.rules, self.audit, node_id=self.node_id,
                                kind=reference_kind(attrs['href']), root_mappings=self.root_mappings)
@@ -174,9 +179,9 @@ class LinkHTMLMapper(HTMLParser):
 
 
 def rewrite_rich_html(raw: str, base: str, rules: list, audit: list, *, node_id: str,
-                      root_mappings: list | None = None) -> str:
+                      root_mappings: list | None = None, keep_source_styles: bool = False) -> str:
     from .engine import sanitize_html
-    parser = LinkHTMLMapper(base, rules, audit, node_id, root_mappings)
+    parser = LinkHTMLMapper(base, rules, audit, node_id, root_mappings, keep_source_styles=keep_source_styles)
     parser.feed(sanitize_html(raw, base))
     parser.close()
     return ''.join(parser.parts)
