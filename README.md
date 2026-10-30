@@ -190,3 +190,24 @@ python -m poc graph-stage --plan path/to/authorized-plan.json --out private-stag
 The local Studio now has a **Styles & scripts cleanup** sample, an **Authored stylesheet policy** selector, and a **Styles & scripts** report tab. Safe inline rich-text styles are parsed with `tinycss2`, deduplicated into deterministic classes, and optionally exported as `source-styles.css`. The default client mapping **intentionally uses client styles**, while structural output preserves reviewed source formatting. Scripts, handlers, and embedded stylesheets are inventoried for manual mapping and are never copied as executable output. Every output receives `presentation-report.json`.
 
 Install compiler dependency: `python -m pip install -r requirements-dev.txt`. This is a **narrow inline-declaration compiler**, not full SPFx CSS extraction, stylesheet dependency processing, arbitrary JavaScript translation, visual-parity verification, or production-ready HTML sanitization. For architecture, limits, and research evidence see [docs/mvp/08-clean-presentation-compiler.md](docs/mvp/08-clean-presentation-compiler.md).
+
+
+## Stylesheet workbench and responsive browser gate (MVP milestone 09)
+
+In addition to compiling safe **inline** formatting, the product now accepts **explicitly supplied external stylesheet files** for offline analysis. `css-workbench` identifies simple semantic CSS candidates, limited responsive media rules, safe properties and color tokens; it reports SharePoint-specific selectors, fonts, imports, scripts and complex conditions for review. It never fetches source CSS URLs or applies the proposed output automatically.
+
+```powershell
+python -m poc css-workbench --css poc/samples/public-stylesheet-review-demo.css --html showcase/client-design/index.html --out css-review
+```
+
+Open `css-review/css-review.json` (decisions) and `css-review/reviewed-candidates.css` (reviewable scoped CSS). Migration Studio's **Styles & Scripts** tab includes a CSS upload/review workflow, adding these files to the export without modifying the actual page.
+
+An optional browser check renders generated output at desktop and mobile sizes without executing JS or making outbound requests:
+
+```powershell
+python -m pip install playwright
+python -m playwright install chromium
+python -m poc browser-audit --html showcase/client-design/index.html --out browser-review
+```
+
+Outputs `desktop.png`, `mobile.png`, `browser-audit.json`. This is **not** a source-screenshot parity or accessibility test. See [Milestone 09 CSS workbench and browser gate](docs/mvp/09-css-workbench-and-browser-gate.md).
