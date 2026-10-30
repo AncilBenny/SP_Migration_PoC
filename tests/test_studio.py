@@ -80,7 +80,7 @@ class StudioHTTPTests(unittest.TestCase):
     def test_http_full_import_preview_export(self):
         code, raw, headers = self.request('/api/samples')
         self.assertEqual(code, 200)
-        self.assertEqual(len(json.loads(raw)['samples']), 5)
+        self.assertEqual(len(json.loads(raw)['samples']), 6)
         self.assertEqual(headers['X-Content-Type-Options'], 'nosniff')
         code, raw, _ = self.request('/api/capabilities')
         self.assertEqual(code, 200)
