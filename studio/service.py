@@ -29,6 +29,7 @@ SAMPLES = {
     'pnp-public-canvas': ('Public PnP canvas', 'MIT-licensed public CanvasContent1 fixture; custom web part', 'poc/samples/pnp-canvas-public.json'),
     'cdph-root-routing-demo': ('Separate URL roots', 'Synthetic page, image and document paths for routing demo; not a CDPH export', 'poc/samples/modern-cdph-routes-demo.json'),
     'modern-rich-layout': ('Rich Modern layout', 'Public Microsoft Graph API contracts adapted: title image, 8/4 grid, vertical section', 'poc/samples/modern-rich-layout-public-adapted.json'),
+    'modern-style-compiler': ('Styles & scripts cleanup', 'Synthetic Graph-shaped sample: safe CSS classes, blocked scripts and event handlers', 'poc/samples/modern-styles-scripts-demo.json'),
 }
 
 
@@ -163,13 +164,26 @@ class ProjectStore:
                     f'<meta name="viewport" content="width=device-width,initial-scale=1">'
                     f'<meta name="description" content="{description}"><title>{title}</title>'
                     f'<link rel="stylesheet" href="style.css"></head><body><main>{body}</main></body></html>')
-            css, report = STRUCTURAL_CSS, {'profileId': None, 'targetFormat': 'html-css', 'mappedComponents': {}, 'mappingWarnings': []}
+            from poc.style_compiler import compile_stylesheet, presentation_report
+            _, style_summary = compile_stylesheet(project.ir, 'source-safe')
+            report = {'profileId': None, 'targetFormat': 'html-css', 'mappedComponents': {}, 'mappingWarnings': [],
+                      'presentation':presentation_report(project.ir, style_summary)}
+            from poc.style_compiler import format_generated_css
+            css = format_generated_css(STRUCTURAL_CSS)
+            if style_summary['emittedRules']:
+                html = html.replace('</head>', '<link rel="stylesheet" href="source-styles.css"></head>')
             validation_profile = {'id': 'structural', 'version': '1.0', 'assetDirectory': 'assets'}
+        from poc.style_compiler import compile_stylesheet
+        if report['presentation']['stylesheet']['emittedRules']:
+            source_css, _ = compile_stylesheet(project.ir, 'source-safe')
         files: dict[str, bytes] = {
             'index.html': html.encode('utf-8'),
             'style.css': css.encode('utf-8'),
             'page.ir.json': (json.dumps(project.ir, indent=2) + '\n').encode('utf-8'),
         }
+        files['presentation-report.json'] = (json.dumps(report['presentation'], indent=2) + '\n').encode('utf-8')
+        if report['presentation']['stylesheet']['emittedRules']:
+            files['source-styles.css'] = source_css.encode('utf-8')
         for asset in project.ir.get('assets', []):
             relative = asset.get('resolvedUrl', '')
             if relative == 'assets/health.svg' and project.trusted_sample:
@@ -178,6 +192,9 @@ class ProjectStore:
         output_check = ir_to_html(project.ir, html, validation_profile)
         # Check the expected local assets also exist in the export.
         missing = []
+        files['presentation-report.json'] = (json.dumps(report['presentation'], indent=2) + '\n').encode('utf-8')
+        if report['presentation']['stylesheet']['emittedRules']:
+            files['source-styles.css'] = source_css.encode('utf-8')
         for asset in project.ir.get('assets', []):
             p = asset.get('resolvedUrl', '')
             if p.startswith('assets/'):
@@ -211,7 +228,8 @@ class ProjectStore:
             'version': 'mvp-0.1', 'sourceToIr': project.source_check, 'irToHtml': output_check,
             'passed': project.source_check['passed'] and output_check['passed'],
             'visualFidelity': 'unverified-no-matched-source-screenshot',
-            'scope': 'Content/structure and link/asset checks for supported controls; no computed CSS or JS comparison',
+            'presentation': report['presentation'],
+            'scope': 'Content, assets, safe authored CSS declarations, and script inventory; no computed CSS or JS behavior comparison',
         }
         files['dependency-manifest.json'] = (json.dumps(dependency_audit, indent=2) + '\n').encode('utf-8')
         files['quality-report.json'] = (json.dumps(quality, indent=2) + '\n').encode('utf-8')
