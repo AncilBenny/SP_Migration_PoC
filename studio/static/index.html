@@ -49,6 +49,8 @@
         <div id="mappingControls">
           <label for="primary">Target brand color</label><div class="color-line"><input type="color" id="primary" value="#263e52"><span id="colorLabel">#263e52</span></div>
           <label for="links">Map Quick Links to</label><select id="links"><option value="resourceCards">Resource cards</option><option value="simpleLinks">Standard link list</option></select>
+          <label for="stylePolicy">Authored stylesheet policy</label>
+          <select id="stylePolicy"><option value="target">Use client design system (discard source styles intentionally)</option><option value="source-safe">Preserve safe source formatting in reusable CSS classes</option></select>
           <label for="resourceTitle">Resource section heading</label><input type="text" id="resourceTitle" value="Useful resources" maxlength="120">
           <details class="root-settings"><summary>URL roots · pages / images / documents</summary>
             <p class="fine">Each reference retains its path after the source root. Page routes can remove .aspx; asset roots are separate. Remote URLs are not downloaded automatically.</p>
@@ -66,11 +68,11 @@
     <section class="results" id="results" hidden>
       <div class="result-top"><div><span class="eyebrow">MIGRATION RESULT</span><h2 id="projectTitle">Generated page</h2></div><div class="result-actions"><button id="rebuild" class="secondary">Refresh preview</button><button class="primary" id="export">Export ZIP ↓</button></div></div>
       <div class="metrics"><div><strong id="metricNodes">0</strong><span>IR nodes</span></div><div><strong id="metricWarnings">0</strong><span>Warnings</span></div><div><strong id="metricPreserved">0</strong><span>Preserved controls</span></div><div><strong id="metricStatus">—</strong><span>Quality checks</span></div></div>
-      <div class="tabs" role="tablist" aria-label="Results"><button class="selected" data-tab="preview" role="tab" aria-selected="true">Live preview</button><button data-tab="ir" role="tab" aria-selected="false">Clean IR</button><button data-tab="quality" role="tab" aria-selected="false">Validation report</button><button data-tab="mapping" role="tab" aria-selected="false">Mapping trace</button></div>
+      <div class="tabs" role="tablist" aria-label="Results"><button class="selected" data-tab="preview" role="tab" aria-selected="true">Live preview</button><button data-tab="ir" role="tab" aria-selected="false">Clean IR</button><button data-tab="quality" role="tab" aria-selected="false">Validation report</button><button data-tab="mapping" role="tab" aria-selected="false">Mapping trace</button><button data-tab="presentation" role="tab" aria-selected="false">Styles & scripts</button></div>
       <div id="previewPanel" class="tab-panel"><div class="browser-bar"><span class="dots">● ● ●</span><span>Generated HTML / CSS · Sandboxed preview</span></div><iframe id="preview" title="Migrated webpage preview" sandbox=""></iframe></div>
       <div id="irPanel" class="tab-panel" hidden><div class="data-head">Framework-independent canonical document <button class="secondary" id="copyIr">Copy JSON</button></div><pre id="irJson"></pre></div>
       <div id="qualityPanel" class="tab-panel" hidden><div class="data-head">Content preservation and quality checks</div><pre id="qualityJson"></pre></div>
-      <div id="mappingPanel" class="tab-panel" hidden><div class="data-head">Per-control target mappings and rewrites</div><pre id="mappingJson"></pre></div>
+      <div id="presentationPanel" class="tab-panel" hidden><div class="data-head">Compiled styles and source-script review</div><pre id="presentationJson"></pre></div><div id="mappingPanel" class="tab-panel" hidden><div class="data-head">Per-control target mappings and rewrites</div><pre id="mappingJson"></pre></div>
       <p class="fine disclaimer">Visual fidelity is not verified: public samples do not provide a matched original page screenshot and computed CSS. Unsupported controls remain flagged for review.</p>
     </section>
     <div id="notice" role="status" aria-live="polite" class="notice" hidden></div>
