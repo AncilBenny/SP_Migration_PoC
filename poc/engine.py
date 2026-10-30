@@ -91,7 +91,10 @@ def normalize(page: dict, *, asset_map: dict[str, str] | None = None) -> dict:
             source_ref["capturePointer"] = str(part["_capturePointer"])
         odata = str(part.get("@odata.type", "")).lower().lstrip("#")
         if odata.endswith("textwebpart") or ("innerHtml" in part and not part.get("webPartType")):
-            clean = sanitize_with_audit(part.get("innerHtml", ""), base_url)
+            raw_html = part.get("innerHtml", "")
+            clean = sanitize_with_audit(raw_html, base_url, compile_styles=True)
+            from .style_compiler import audit_source_code
+            source_code = audit_source_code(raw_html)
             html = clean.html
             if clean.kept_inline_images:
                 diagnostics.append({"severity": "warning", "code": "INLINE_IMAGE_ASSET_REVIEW",
@@ -103,8 +106,18 @@ def normalize(page: dict, *, asset_map: dict[str, str] | None = None) -> dict:
                                     "details": {"removedElements": clean.removed_elements,
                                                 "removedAttributes": clean.removed_attributes,
                                                 "rejectedUrls": clean.rejected_urls}})
+            if clean.dropped_style_properties:
+                diagnostics.append({"severity": "warning", "code": "SOURCE_CSS_DECLARATIONS_REVIEW",
+                                    "nodeId": part_id, "message": "Unsupported or unsafe source formatting was not compiled",
+                                    "details": {"properties": sorted(set(clean.dropped_style_properties))}})
+            if source_code:
+                diagnostics.append({"severity": "warning", "code": "SOURCE_SCRIPTS_STYLES_REVIEW",
+                                    "nodeId": part_id, "message": "Source scripts, handlers or stylesheets require manual behavior/visual mapping",
+                                    "details": {"inventory": source_code}})
             counts["richText"] += 1
-            return {"id": part_id, "kind": "richText", "props": {"safeHtml": html}, "sourceRef": source_ref, "fidelity": {"status": "approximate", "reason": "Safe HTML subset; styling and inline controls are not reproduced"}}
+            return {"id": part_id, "kind": "richText", "props": {"safeHtml": html, "styleRules": list(clean.style_rules),
+                    "sourceCodeAudit": source_code}, "sourceRef": source_ref,
+                    "fidelity": {"status": "approximate", "reason": "Safe declared formatting compiled; full CSS cascade and dynamic behavior unverified"}}
 
         part_type = str(part.get("webPartType") or "").lower()
         source_ref["webPartType"] = part_type
@@ -297,9 +310,17 @@ def build(source: Path, out: Path, assets_dir: Path | None = None, *, style_mode
             f'<meta name="viewport" content="width=device-width,initial-scale=1">'
             f'<meta name="description" content="{description}"><title>{title}</title>'
             f'<link rel="stylesheet" href="style.css"></head><body><main>{body}</main></body></html>')
+    from .style_compiler import compile_stylesheet, presentation_report
+    source_styles, style_summary = compile_stylesheet(ir, 'source-safe')
+    if style_summary['emittedRules']:
+        html = html.replace('</head>', '<link rel="stylesheet" href="source-styles.css"></head>')
+        (out / 'source-styles.css').write_text(source_styles, encoding='utf-8')
+    (out / 'presentation-report.json').write_text(json.dumps(presentation_report(ir, style_summary), indent=2) + '\n', encoding='utf-8')
     (out / "index.html").write_text(html, encoding="utf-8")
-    (out / "style.css").write_text((STRUCTURAL_CSS if style_mode == "structural" else DEMO_CSS) +
-                                   ".hero-image{display:block;max-width:100%;height:auto}.vertical-section{width:100%}", encoding="utf-8")
+    from .style_compiler import format_generated_css
+    formatted_css = format_generated_css((STRUCTURAL_CSS if style_mode == 'structural' else DEMO_CSS) +
+                                         '.hero-image{display:block;max-width:100%;height:auto}.vertical-section{width:100%}')
+    (out / 'style.css').write_text(formatted_css, encoding='utf-8')
     ir_text = json.dumps(ir, indent=2) + "\n"
     (out / "page.ir.json").write_text(ir_text, encoding="utf-8")
     counts = Counter()
@@ -315,7 +336,9 @@ def build(source: Path, out: Path, assets_dir: Path | None = None, *, style_mode
     from .acquisition import plan_acquisition
     acquisition_plan = plan_acquisition(ir)
     (out / 'acquisition-plan.json').write_text(json.dumps(acquisition_plan, indent=2) + '\n', encoding='utf-8')
-    output_files = {'index.html': html.encode('utf-8'), 'style.css': (STRUCTURAL_CSS if style_mode == 'structural' else DEMO_CSS).encode('utf-8')}
+    output_files = {'index.html': html.encode('utf-8'), 'style.css': formatted_css.encode('utf-8')}
+    if style_summary['emittedRules']:
+        output_files['source-styles.css'] = source_styles.encode('utf-8')
     for asset_record in ir['assets']:
         path = asset_record.get('resolvedUrl', '')
         if path.startswith('assets/') and (out / path).is_file():
