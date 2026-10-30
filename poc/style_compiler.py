@@ -134,7 +134,7 @@ def compile_stylesheet(ir: dict, policy: str) -> tuple[str, dict]:
     kept = policy == 'source-safe'
     css = '/* Reviewed source formatting: deduplicated, no imports, URLs or scripting. */\n'
     if kept:
-        css += ''.join(f'.{name}'+'{'+';'.join(f'{prop}:{value}' for prop,value in props.items())+';}\n'
+        css += ''.join(f':is(.rich-text,.target-body) .{name}'+'{'+';'.join(f'{prop}:{value}' for prop,value in props.items())+';}\n'
                        for name,props in rules.items())
     return css, {**summary, 'stylePolicy':policy, 'emittedRules': len(rules) if kept else 0,
                  'intentionallyOmittedRules': 0 if kept else len(rules),
