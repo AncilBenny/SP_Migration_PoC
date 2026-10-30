@@ -1,2 +1,4 @@
 # Optional locally; mandatory in CI for Draft 2020-12 verification
 jsonschema>=4.23,<5
+
+-r requirements.txt
