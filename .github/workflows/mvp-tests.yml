@@ -10,6 +10,7 @@ on:
       - "docs/mvp/**"
       - "schema/**"
       - "requirements-dev.txt"
+      - "requirements.txt"
       - ".github/workflows/mvp-tests.yml"
 jobs:
   test:
@@ -21,7 +22,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install schema-validation test dependency
+      - name: Install schema and CSS compiler dependencies
         run: python -m pip install -r requirements-dev.txt
       - name: Unit, security, JSON Schema and local HTTP integration tests
         env:
