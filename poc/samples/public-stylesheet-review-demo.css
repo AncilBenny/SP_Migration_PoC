@@ -1,0 +1,12 @@
+/* Authored illustrative CSS for CSS workbench tests; not extracted from a tenant. */
+h2 { color:#263e52; font-weight:700; }
+p { line-height:1.5; margin-bottom:1rem; }
+@media (max-width: 700px) {
+  h2 { font-size:22px; }
+  .ms-WPHeader h2 { font-size:16px; }
+}
+/* The following must NEVER pass through automatically. */
+@import url(https://untrusted.invalid/site.css);
+@font-face { font-family:UnknownBrand; src:url(https://untrusted.invalid/font.woff); }
+.ms-rtestate-field > p { position:fixed; }
+button { behavior:url(unsafe.htc); }
