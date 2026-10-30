@@ -28,6 +28,15 @@ Offline build:
 python -m poc build --input poc/samples/modern-styles-scripts-demo.json --out demo-styles
 ```
 
+Optional CLI comparison of client-redesign vs. safe source typography:
+
+```powershell
+python -m poc map --ir demo-styles/page.ir.json --profile poc/profiles/client-example.json --out demo-client-design
+python -m poc map --ir demo-styles/page.ir.json --profile poc/profiles/client-example-source-safe.json --out demo-preserved-typography
+```
+
+The first output intentionally uses client design tokens; the second retains reviewed rich-text source declarations. Both include a presentation report, and the second includes `source-styles.css`.
+
 The sample is synthetic and Graph-shaped: it is *not* a verified SharePoint tenant capture.
 
 ## Fidelity/security gates (not yet met)
