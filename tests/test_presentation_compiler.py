@@ -188,3 +188,10 @@ class CSSReadabilityTests(unittest.TestCase):
         self.assertGreater(css.count('\n'), 35)
         self.assertIn('target-header {', css)
         self.assertIn('  padding: 54px 0;', css)
+
+class ProfileIntegrationTest(unittest.TestCase):
+    def test_bundled_source_safe_profile_is_valid_and_compiles(self):
+        profile = json.loads((ROOT/'poc/profiles/client-example-source-safe.json').read_text())
+        html, _, report = render_target(normalize(sample()), profile)
+        self.assertIn('source-styles.css', html)
+        self.assertEqual(report['presentation']['stylesheet']['stylePolicy'], 'source-safe')
