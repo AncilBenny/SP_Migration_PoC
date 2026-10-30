@@ -1,0 +1,27 @@
+# Diagnostic for GitHub-hosted runner startup only.
+# This intentionally has no checkout action, Python setup, dependency installation,
+# secrets, repo writes or network-dependent commands.
+name: Runner provisioning diagnostic
+
+on:
+  push:
+    branches: ["mvp/**"]
+    paths:
+      - ".github/workflows/runner-diagnostic.yml"
+      - "docs/mvp/10-ci-runner-troubleshooting.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    name: Minimal Ubuntu runner health
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Confirm a runner actually started
+        run: |
+          echo "Runner started"
+          echo "OS: ${RUNNER_OS}"
+          echo "Workflow: ${GITHUB_WORKFLOW}"
