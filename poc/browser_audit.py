@@ -83,12 +83,37 @@ def audit_browser_page(html_file: Path, output: Path) -> dict:
                       firstHeadingColor: getComputedStyle(document.querySelector('h1,h2') || document.body).color,
                       firstHeadingFontSize: getComputedStyle(document.querySelector('h1,h2') || document.body).fontSize
                     })''')
+                    # Trace ONLY compiler-emitted IR markers. Never record page text,
+                    # URLs, screenshot pixels or arbitrary source selectors here.
+                    component_geometry = page.evaluate('''() =>
+                      [...document.querySelectorAll('[data-ir-id]')].slice(0, 200)
+                        .map(el => {
+                          const r = el.getBoundingClientRect();
+                          const css = getComputedStyle(el);
+                          return {
+                            nodeId: el.getAttribute('data-ir-id'),
+                            elementTag: el.tagName.toLowerCase(),
+                            rect: {
+                              x: Math.round(r.left + window.scrollX),
+                              y: Math.round(r.top + window.scrollY),
+                              width: Math.round(r.width),
+                              height: Math.round(r.height)
+                            },
+                            styleProbe: {
+                              fontSize: css.fontSize,
+                              lineHeight: css.lineHeight,
+                              display: css.display
+                            }
+                          };
+                        }).filter(item => item.rect.width > 0 && item.rect.height > 0)
+                    ''')
                     screenshot = page.screenshot(full_page=True, animations='disabled', timeout=10000)
                     (output / f'{label}.png').write_bytes(screenshot)
                     outcomes[label] = {
                         **metrics,
                         'horizontalOverflow': metrics['documentWidth'] > width + 1,
                         'screenshot':f'{label}.png',
+                        'componentGeometry':component_geometry,
                         'sha256':sha256(screenshot).hexdigest(),
                     }
                 finally:
