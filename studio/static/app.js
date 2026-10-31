@@ -14,7 +14,7 @@ function currentProfile(){
 }
 function setTab(tab){
   document.querySelectorAll('[data-tab]').forEach(b=>{const active=b.dataset.tab===tab;b.classList.toggle('selected',active);b.setAttribute('aria-selected',String(active));});
-  for(const name of ['preview','ir','quality','mapping','presentation','behavior']) $(name+'Panel').hidden=name!==tab;
+  for(const name of ['preview','ir','quality','mapping','presentation','behavior','visual']) $(name+'Panel').hidden=name!==tab;
 }
 function fillResult(result){
   state.last=result;
@@ -130,6 +130,22 @@ async function init(){
       $('cssReviewJson').textContent=JSON.stringify(result.report,null,2);
       notice('CSS review complete. Candidates are included in export but NOT applied to the page.');
     }catch(error){notice(error.message,true);}
+  });
+  $('reviewVisual').addEventListener('click',async()=>{
+    if(!state.last || !state.projectId) return notice('Generate a page before visual comparison',true);
+    const file=$('visualBaseline').files[0];
+    if(!file || file.size>1500000 || file.type!=='image/png') return notice('Select a PNG screenshot smaller than 1.5 MB',true);
+    const width=Number($('visualViewport').value);
+    const button=$('reviewVisual');button.disabled=true;
+    try {
+      const buffer=await file.arrayBuffer();
+      const bytes=new Uint8Array(buffer);
+      let binary='';for(let i=0;i<bytes.length;i+=16384){binary+=String.fromCharCode(...bytes.subarray(i,i+16384));}
+      const result=await api('/api/visual-review',{projectId:state.projectId,mode:state.last.mode,viewportWidth:width,sourcePngBase64:btoa(binary)});
+      $('visualJson').textContent=JSON.stringify(result.report,null,2);
+      $('visualHeatmap').src=result.heatmapDataUrl;$('visualHeatmap').style.display='block';
+      notice('Visual difference review complete. Only metrics are added to export; fidelity still needs human approval.');
+    }catch(error){notice(error.message,true);}finally{button.disabled=false;}
   });
   $('copyIr').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('irJson').textContent);notice('Canonical JSON copied');}catch{notice('Clipboard unavailable; select and copy the JSON manually',true);}});
 }
