@@ -51,6 +51,11 @@
           <label for="links">Map Quick Links to</label><select id="links"><option value="resourceCards">Resource cards</option><option value="simpleLinks">Standard link list</option></select>
           <label for="stylePolicy">Authored stylesheet policy</label>
           <select id="stylePolicy"><option value="target">Use client design system (discard source styles intentionally)</option><option value="source-safe">Preserve safe source formatting in reusable CSS classes</option></select>
+          <label for="behaviorNode">Interaction mapping (explicit / review required)</label>
+          <select id="behaviorNode"><option value="">Do not convert source behavior</option></select>
+          <label for="behaviorType">Target interaction</label>
+          <select id="behaviorType"><option value="accordion">Native HTML accordion (no JS)</option><option value="tabs">Accessible tab panels (minimal JS)</option></select>
+          <p class="fine">Select a CIR rich-text node containing 2+ sibling h2 sections. Untrusted SharePoint scripts are never transferred. The sandboxed Studio preview does not execute JS; exported tabs work when served locally.</p>
           <label for="resourceTitle">Resource section heading</label><input type="text" id="resourceTitle" value="Useful resources" maxlength="120">
           <details class="root-settings"><summary>URL roots · pages / images / documents</summary>
             <p class="fine">Each reference retains its path after the source root. Page routes can remove .aspx; asset roots are separate. Remote URLs are not downloaded automatically.</p>
@@ -80,7 +85,7 @@
           <label for="cssFile">Upload locally supplied CSS (max 200 KB)</label>
           <input id="cssFile" type="file" accept=".css,text/css">
           <label for="selectorMapFile">Optional reviewed selector mapping (.json, max 16 KB)</label>
-          <p class="fine">Map exact SharePoint selectors to known destination components. Source selectors are never copied into output CSS. This only produces review candidates; it does not apply them.</p>
+          <p class="fine">Map exact SharePoint selectors to known destination components. Source selectors are never copied into the output CSS. This only generates review candidates; it does not apply them.</p>
           <input id="selectorMapFile" type="file" accept=".json,application/json">
           <button class="secondary" id="reviewCss" type="button">Analyze CSS and component mappings</button>
           <pre id="cssReviewJson" aria-label="Stylesheet analysis report"></pre>
