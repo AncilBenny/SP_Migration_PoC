@@ -31,7 +31,9 @@ Rules that reference target components absent from the generated HTML are withhe
 ```powershell
 python -m pip install -r requirements-dev.txt
 python -m unittest discover -s tests -v
-python -m poc css-workbench --css poc/samples/modern-selector-component-demo.css --selector-map poc/profiles/modern-selector-component-map.json --html showcase/client-design/index.html --out demo-selector-review
+python -m poc build --input poc/samples/modern-demo.json --out demo
+python -m poc map --ir demo/page.ir.json --profile poc/profiles/client-example.json --out demo-client
+python -m poc css-workbench --css poc/samples/modern-selector-component-demo.css --selector-map poc/profiles/modern-selector-component-map.json --html demo-client/index.html --out demo-selector-review
 python -m studio --port 8765
 ```
 
