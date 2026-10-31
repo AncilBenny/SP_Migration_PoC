@@ -238,3 +238,16 @@ python -m http.server 8008 --directory behavior-target
 Open http://127.0.0.1:8008/ for the standalone interactive demo. Native accordions need no JS; tab mappings generate one fixed `behavior.js` file with keyboard interactions and a no-JS fallback. In Migration Studio, choose the **Accessible behaviors** sample, inspect its rich-text nodes and select an explicit interaction under destination settings. The sandboxed Studio iframe intentionally does not run JavaScript; export the page to test the actual tab behavior.
 
 The sample is synthetic and its accordion/tabs are **intended destination behaviors**, not a measured copy of a real SharePoint runtime. Visual parity, custom SPFx behavior, and assistive-technology compatibility still require review. Read [Milestone 12 research and validation](docs/mvp/12-accessible-behavior-compiler.md).
+
+
+## Milestone 13: reviewed on-page navigation and local resource filtering
+
+Destination profiles can opt into a **no-JavaScript table of contents** from well-formed rich-text headings and a **progressively enhanced Quick Links filter** on a CIR link list. The fixed filter script searches only the already-rendered link labels, performs no network requests, and keeps every link visible when JavaScript is unavailable. Generated navigation is excluded from the original source-content marker so independent validation still checks the original text, headings, and links. No source scripts are copied.
+
+```powershell
+python -m poc build --input poc/samples/modern-interactions-synthetic.json --out demo-navigation-source
+python -m poc map --ir demo-navigation-source/page.ir.json --profile poc/profiles/client-navigation-filter-demo.json --out demo-navigation-client --strict
+python -m http.server 8000 --directory demo-navigation-client
+```
+
+This is an explicit, reviewed destination behavior—not automatic SPFx script migration. See [Milestone 13 navigation and filtering](docs/mvp/13-reviewed-navigation-and-filtering.md). A browser-based source/target acceptance comparison remains necessary before production release.
