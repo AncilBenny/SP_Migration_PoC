@@ -70,6 +70,7 @@ def main():
     stylesheet.add_argument('--css', type=Path, required=True, help='A locally supplied CSS file; no imports fetched')
     stylesheet.add_argument('--html', type=Path, help='Generated index.html for observed semantic tags')
     stylesheet.add_argument('--out', type=Path, default=Path('css-review'))
+    stylesheet.add_argument('--selector-map', type=Path, help='Reviewed JSON manifest: exact source selectors -> destination components')
     browser = sub.add_parser('browser-audit', help='Optional offline Chromium screenshots + responsive checks; no source baseline')
     browser.add_argument('--html', type=Path, required=True)
     browser.add_argument('--out', type=Path, default=Path('browser-review'))
@@ -81,7 +82,8 @@ def main():
     elif args.command == 'css-workbench':
         from .css_workbench import compile_reviewed_css
         css, result = compile_reviewed_css(args.css.read_text(encoding='utf-8'),
-                                           args.html.read_text(encoding='utf-8') if args.html else '')
+                                           args.html.read_text(encoding='utf-8') if args.html else '',
+                                           selector_map=json.loads(args.selector_map.read_text(encoding='utf-8')) if args.selector_map else None)
         args.out.mkdir(parents=True, exist_ok=True)
         (args.out / 'reviewed-candidates.css').write_text(css, encoding='utf-8')
         (args.out / 'css-review.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
