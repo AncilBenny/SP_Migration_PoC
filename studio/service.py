@@ -248,7 +248,7 @@ class ProjectStore:
             'files': sorted(files),
         }
 
-    def review_stylesheet(self, project_id: str, mode: str, source_css: str) -> dict:
+    def review_stylesheet(self, project_id: str, mode: str, source_css: str, selector_map: dict | None = None) -> dict:
         """Analyze supplied CSS against a generated page, without applying it.
 
         Keep a separate review artifact in the export, never change the CIR or
@@ -261,9 +261,16 @@ class ProjectStore:
         if output is None:
             raise ValueError('Generate a destination before reviewing a stylesheet')
         from poc.css_workbench import compile_reviewed_css
-        css, report = compile_reviewed_css(source_css, output.files['index.html'].decode('utf-8'))
+        css, report = compile_reviewed_css(source_css, output.files['index.html'].decode('utf-8'), selector_map=selector_map)
         output.files['reviewed-candidates.css'] = css.encode('utf-8')
         output.files['css-review.json'] = (json.dumps(report, indent=2) + '\n').encode('utf-8')
+        if selector_map is not None:
+            from poc.css_workbench import validate_selector_map
+            normalized = validate_selector_map(selector_map)
+            # A review artifact only; never interpreted as executable CSS.
+            output.files['selector-mapping-review.json'] = (json.dumps({'version':'1.0', 'mappings':[{'sourceSelector':k, 'targetComponent':v} for k,v in sorted(normalized.items())]}, indent=2) + '\n').encode('utf-8')
+        else:
+            output.files.pop('selector-mapping-review.json', None)
         return {'report': report, 'css':css, 'applied':False,
                 'note':'Review-only. No source CSS is automatically applied to the migrated page.'}
 
