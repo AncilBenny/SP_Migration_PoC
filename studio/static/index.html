@@ -79,7 +79,10 @@
           <p class="fine">Imports, SPFx selectors, conditional CSS, scripts and unsafe properties are flagged; approved semantic candidates are scoped to rich text and included in the export for review, never auto-applied.</p>
           <label for="cssFile">Upload locally supplied CSS (max 200 KB)</label>
           <input id="cssFile" type="file" accept=".css,text/css">
-          <button class="secondary" id="reviewCss" type="button">Analyze CSS against this page</button>
+          <label for="selectorMapFile">Optional reviewed selector mapping (.json, max 16 KB)</label>
+          <p class="fine">Map exact SharePoint selectors to known destination components. Source selectors are never copied into output CSS. This only produces review candidates; it does not apply them.</p>
+          <input id="selectorMapFile" type="file" accept=".json,application/json">
+          <button class="secondary" id="reviewCss" type="button">Analyze CSS and component mappings</button>
           <pre id="cssReviewJson" aria-label="Stylesheet analysis report"></pre>
         </details>
       </div><div id="mappingPanel" class="tab-panel" hidden><div class="data-head">Per-control target mappings and rewrites</div><pre id="mappingJson"></pre></div>
