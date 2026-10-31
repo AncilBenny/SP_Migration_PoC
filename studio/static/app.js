@@ -9,7 +9,8 @@ async function api(path, payload) {
   return result;
 }
 function currentProfile(){
-  return {version:'1.0',id:'client-resource-portal',components:{hero:'pageHeader',richText:'contentBody',image:'media',linkList:$('links').value,unknown:'reviewNote'},colors:{primary:$('primary').value,background:'#f2f4f5',surface:'#ffffff',text:'#24323d',link:'#176a87'},layout:{maxWidthPx:1080,gapPx:28},font:'system',labels:{resourcesHeading:$('resourceTitle').value||'Resources'},assetDirectory:'media',stylePolicy:$('stylePolicy').value,urlMappings:[],rootMappings:['page','image','document'].map(kind=>({kind,sourcePrefix:$('sourceRoot').value.trim(),targetPrefix:$(kind==='page'?'pageRoot':kind==='image'?'imageRoot':'documentRoot').value.trim(),...(kind==='page'?{stripAspx:$('stripAspx').checked}:{})}))};
+  const behaviorNode=$('behaviorNode').value;
+  return {version:'1.0',id:'client-resource-portal',components:{hero:'pageHeader',richText:'contentBody',image:'media',linkList:$('links').value,unknown:'reviewNote'},colors:{primary:$('primary').value,background:'#f2f4f5',surface:'#ffffff',text:'#24323d',link:'#176a87'},layout:{maxWidthPx:1080,gapPx:28},font:'system',labels:{resourcesHeading:$('resourceTitle').value||'Resources'},assetDirectory:'media',stylePolicy:$('stylePolicy').value,behaviorMappings:behaviorNode?[{nodeId:behaviorNode,interaction:$('behaviorType').value,headingLevel:2,initialIndex:0}]:[],urlMappings:[],rootMappings:['page','image','document'].map(kind=>({kind,sourcePrefix:$('sourceRoot').value.trim(),targetPrefix:$(kind==='page'?'pageRoot':kind==='image'?'imageRoot':'documentRoot').value.trim(),...(kind==='page'?{stripAspx:$('stripAspx').checked}:{})}))};
 }
 function setTab(tab){
   document.querySelectorAll('[data-tab]').forEach(b=>{const active=b.dataset.tab===tab;b.classList.toggle('selected',active);b.setAttribute('aria-selected',String(active));});
@@ -39,6 +40,18 @@ async function analyze(){
     }
     const r=await api('/api/analyze',payload);
     state.projectId=r.projectId;state.ir=r.ir;state.sourceReport=r.sourceCheck;
+    const choices=$('behaviorNode');choices.replaceChildren();
+    const none=document.createElement('option');none.value='';none.textContent='Do not convert source behavior';choices.append(none);
+    const pending=[r.ir.tree];
+    while(pending.length){
+      const node=pending.pop();
+      if(node.kind==='richText'){
+        const option=document.createElement('option');option.value=node.id;option.textContent='Rich-text node: '+node.id;
+        choices.append(option);
+      }
+      for(const child of node.children||[])pending.push(child);
+    }
+    choices.value='';
     $('stageBadge').textContent='Source ready';$('projectTitle').textContent=r.label;
     $('metricNodes').textContent=r.nodeCount;$('metricWarnings').textContent=r.warningCount;
     $('metricPreserved').textContent=r.sourceCheck.summary?.preserved||0;
