@@ -211,3 +211,16 @@ python -m poc browser-audit --html showcase/client-design/index.html --out brows
 ```
 
 Outputs `desktop.png`, `mobile.png`, `browser-audit.json`. This is **not** a source-screenshot parity or accessibility test. See [Milestone 09 CSS workbench and browser gate](docs/mvp/09-css-workbench-and-browser-gate.md).
+
+
+## MVP milestone 11 — reviewed SharePoint stylesheet selector mapping
+
+Stylesheets from actual SharePoint sites can contain runtime-only selectors that do not make sense on the destination website. The CSS workbench now supports a **versioned, explicit selector-to-component mapping** that produces candidate rules using only renderer-owned target classes. It does not mutate the generic CIR, auto-apply CSS, run SharePoint scripts, or fetch stylesheets from URLs.
+
+```powershell
+python -m poc css-workbench --css poc/samples/modern-selector-component-demo.css --html showcase/client-design/index.html --selector-map poc/profiles/modern-selector-component-map.json --out css-component-review
+```
+
+In the local Migration Studio, generate a client page and open **Styles & scripts**; upload a CSS file plus an optional reviewed mapping JSON file. The export includes review-only CSS, diagnostics and the mapping manifest. The example CSS/manifest is synthetic (not verified live SharePoint content).
+
+Read [Milestone 11: CSS selector-to-component mapping](docs/mvp/11-css-selector-component-mapping.md). The feature is **review-required** until computed-style/browser source-versus-target comparison and integration into a client design system are independently verified.
