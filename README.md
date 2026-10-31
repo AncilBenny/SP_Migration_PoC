@@ -207,15 +207,15 @@ An optional browser check renders generated output at desktop and mobile sizes w
 ```powershell
 python -m pip install playwright
 python -m playwright install chromium
-python -m poc browser-audit --html showcase/client-design/index.html --out browser-review
+python -m poc browser-audit --html demo-client/index.html --out browser-review
 ```
 
 Outputs `desktop.png`, `mobile.png`, `browser-audit.json`. This is **not** a source-screenshot parity or accessibility test. See [Milestone 09 CSS workbench and browser gate](docs/mvp/09-css-workbench-and-browser-gate.md).
 
 
-## MVP milestone 11 — reviewed SharePoint stylesheet selector mapping
+## MVP milestone 11: reviewed SharePoint CSS selector → destination component mapping
 
-Stylesheets from actual SharePoint sites can contain runtime-only selectors that do not make sense on the destination website. The CSS workbench now supports a **versioned, explicit selector-to-component mapping** that produces candidate rules using only renderer-owned target classes. It does not mutate the generic CIR, auto-apply CSS, run SharePoint scripts, or fetch stylesheets from URLs.
+CSS from an actual SharePoint source can use runtime-specific selectors that are meaningless on a different client's website. The `css-workbench` now optionally accepts an **explicit, versioned selector mapping manifest** (`--selector-map`), converting those rules into safe, maintainable component-owned candidate styles. Source selectors never appear in generated CSS. Target components must be recognized and present in the generated HTML; unsafe declarations and unrecognized selectors remain review-only. **No source CSS is auto-applied.**
 
 ```powershell
 python -m poc build --input poc/samples/modern-demo.json --out demo
@@ -223,6 +223,18 @@ python -m poc map --ir demo/page.ir.json --profile poc/profiles/client-example.j
 python -m poc css-workbench --css poc/samples/modern-selector-component-demo.css --html demo-client/index.html --selector-map poc/profiles/modern-selector-component-map.json --out css-component-review
 ```
 
-In the local Migration Studio, generate a client page and open **Styles & scripts**; upload a CSS file plus an optional reviewed mapping JSON file. The export includes review-only CSS, diagnostics and the mapping manifest. The example CSS/manifest is synthetic (not verified live SharePoint content).
+The sample selectors and style content are **synthetic illustrative examples**, not a verified customer SharePoint stylesheet. In the local Migration Studio UI, attach the `.css` and optional `.json` selector map in **Styles & scripts**. Exports include the review manifest and candidates but do not change the page or CIR. Details: [CSS selector/component mapping, safety and fidelity limits](docs/mvp/11-css-selector-component-mapping.md).
 
-Read [Milestone 11: CSS selector-to-component mapping](docs/mvp/11-css-selector-component-mapping.md). The feature is **review-required** until computed-style/browser source-versus-target comparison and integration into a client design system are independently verified.
+## MVP milestone 12: explicit behavior compiler (accessible accordions and tabs)
+
+Target profiles can now include a reviewed `behaviorMappings` list. Each entry names a **CIR richText node** with 2–20 simple top-level `h2`/`h3` sections and requests an `accordion` or `tabs` target. We do **not** migrate SharePoint scripts or infer behavior from arbitrary source code. Unsupported structures fail with a clear message; the CIR stays unchanged.
+
+```powershell
+python -m poc build --input poc/samples/modern-interactions-synthetic.json --out behavior-source
+python -m poc map --ir behavior-source/page.ir.json --profile poc/profiles/client-behavior-demo.json --out behavior-target --strict
+python -m http.server 8008 --directory behavior-target
+```
+
+Open http://127.0.0.1:8008/ for the standalone interactive demo. Native accordions need no JS; tab mappings generate one fixed `behavior.js` file with keyboard interactions and a no-JS fallback. In Migration Studio, choose the **Accessible behaviors** sample, inspect its rich-text nodes and select an explicit interaction under destination settings. The sandboxed Studio iframe intentionally does not run JavaScript; export the page to test the actual tab behavior.
+
+The sample is synthetic and its accordion/tabs are **intended destination behaviors**, not a measured copy of a real SharePoint runtime. Visual parity, custom SPFx behavior, and assistive-technology compatibility still require review. Read [Milestone 12 research and validation](docs/mvp/12-accessible-behavior-compiler.md).
