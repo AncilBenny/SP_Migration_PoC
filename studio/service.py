@@ -30,6 +30,7 @@ SAMPLES = {
     'cdph-root-routing-demo': ('Separate URL roots', 'Synthetic page, image and document paths for routing demo; not a CDPH export', 'poc/samples/modern-cdph-routes-demo.json'),
     'modern-rich-layout': ('Rich Modern layout', 'Public Microsoft Graph API contracts adapted: title image, 8/4 grid, vertical section', 'poc/samples/modern-rich-layout-public-adapted.json'),
     'modern-style-compiler': ('Styles & scripts cleanup', 'Synthetic Graph-shaped sample: safe CSS classes, blocked scripts and event handlers', 'poc/samples/modern-styles-scripts-demo.json'),
+    'modern-interactions': ('Accessible behaviors', 'Synthetic rich-text headings for explicitly reviewed accordion and tab mappings', 'poc/samples/modern-interactions-synthetic.json'),
 }
 
 
@@ -181,6 +182,9 @@ class ProjectStore:
             'style.css': css.encode('utf-8'),
             'page.ir.json': (json.dumps(project.ir, indent=2) + '\n').encode('utf-8'),
         }
+        if mode == 'client' and report.get('behavior', {}).get('scriptAssets'):
+            from poc.behavior_compiler import BEHAVIOR_JS
+            files['behavior.js'] = BEHAVIOR_JS.encode('utf-8')
         files['presentation-report.json'] = (json.dumps(report['presentation'], indent=2) + '\n').encode('utf-8')
         if report['presentation']['stylesheet']['emittedRules']:
             files['source-styles.css'] = source_css.encode('utf-8')
@@ -229,7 +233,8 @@ class ProjectStore:
             'passed': project.source_check['passed'] and output_check['passed'],
             'visualFidelity': 'unverified-no-matched-source-screenshot',
             'presentation': report['presentation'],
-            'scope': 'Content, assets, safe authored CSS declarations, and script inventory; no computed CSS or JS behavior comparison',
+            'behavior': report.get('behavior', {'compiled':[], 'sourceRuntimeCopied':False}),
+            'scope': 'Content, assets, safe authored CSS declarations, script inventory, explicit destination behavior mappings; no computed CSS or source-vs-target interaction comparison',
         }
         files['dependency-manifest.json'] = (json.dumps(dependency_audit, indent=2) + '\n').encode('utf-8')
         files['quality-report.json'] = (json.dumps(quality, indent=2) + '\n').encode('utf-8')
@@ -267,7 +272,7 @@ class ProjectStore:
         if selector_map is not None:
             from poc.css_workbench import validate_selector_map
             normalized = validate_selector_map(selector_map)
-            # A review artifact only; never interpreted as executable CSS.
+            # Reviewable artifact, never interpreted as a source CSS program.
             output.files['selector-mapping-review.json'] = (json.dumps({'version':'1.0', 'mappings':[{'sourceSelector':k, 'targetComponent':v} for k,v in sorted(normalized.items())]}, indent=2) + '\n').encode('utf-8')
         else:
             output.files.pop('selector-mapping-review.json', None)
