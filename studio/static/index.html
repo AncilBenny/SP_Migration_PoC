@@ -54,8 +54,8 @@
           <label for="behaviorNode">Interaction mapping (explicit / review required)</label>
           <select id="behaviorNode"><option value="">Do not convert source behavior</option></select>
           <label for="behaviorType">Target interaction</label>
-          <select id="behaviorType"><option value="accordion">Native HTML accordion (no JS)</option><option value="tabs">Accessible tab panels (minimal JS)</option></select>
-          <p class="fine">Select a CIR rich-text node containing 2+ sibling h2 sections. Untrusted SharePoint scripts are never transferred. The sandboxed Studio preview does not execute JS; exported tabs work when served locally.</p>
+          <select id="behaviorType"><option value="accordion">Native HTML accordion (no JS)</option><option value="tabs">Accessible tab panels (minimal JS)</option><option value="toc">On-page navigation (no JS)</option><option value="filterLinks">Searchable Quick Links (minimal JS)</option></select>
+          <p class="fine">Choose rich text with 2+ h2 sections for accordion, tabs or navigation; choose Quick Links for local filtering. Untrusted SharePoint scripts are never transferred. The sandboxed Studio preview does not execute JS; exported tabs work when served locally.</p>
           <label for="resourceTitle">Resource section heading</label><input type="text" id="resourceTitle" value="Useful resources" maxlength="120">
           <details class="root-settings"><summary>URL roots · pages / images / documents</summary>
             <p class="fine">Each reference retains its path after the source root. Page routes can remove .aspx; asset roots are separate. Remote URLs are not downloaded automatically.</p>
