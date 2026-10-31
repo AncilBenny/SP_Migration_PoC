@@ -239,10 +239,9 @@ Open http://127.0.0.1:8008/ for the standalone interactive demo. Native accordio
 
 The sample is synthetic and its accordion/tabs are **intended destination behaviors**, not a measured copy of a real SharePoint runtime. Visual parity, custom SPFx behavior, and assistive-technology compatibility still require review. Read [Milestone 12 research and validation](docs/mvp/12-accessible-behavior-compiler.md).
 
+## MVP milestone 13: page navigation and filtered Quick Links
 
-## Milestone 13: reviewed on-page navigation and local resource filtering
-
-Destination profiles can opt into a **no-JavaScript table of contents** from well-formed rich-text headings and a **progressively enhanced Quick Links filter** on a CIR link list. The fixed filter script searches only the already-rendered link labels, performs no network requests, and keeps every link visible when JavaScript is unavailable. Generated navigation is excluded from the original source-content marker so independent validation still checks the original text, headings, and links. No source scripts are copied.
+An explicitly reviewed `behaviorMappings` profile can now produce a **no-script table of contents** from a safe rich-text heading sequence and a **progressively enhanced Quick Links filter** from an existing link-list node. The filter's JavaScript is application-owned and only operates on already-rendered links; it does not copy SharePoint scripts or call remote services. Generated navigation stays outside the source-content validation marker, preserving independent content accounting. The source CIR remains immutable.
 
 ```powershell
 python -m poc build --input poc/samples/modern-interactions-synthetic.json --out demo-navigation-source
@@ -250,4 +249,10 @@ python -m poc map --ir demo-navigation-source/page.ir.json --profile poc/profile
 python -m http.server 8000 --directory demo-navigation-client
 ```
 
-This is an explicit, reviewed destination behavior—not automatic SPFx script migration. See [Milestone 13 navigation and filtering](docs/mvp/13-reviewed-navigation-and-filtering.md). A browser-based source/target acceptance comparison remains necessary before production release.
+See [reviewed navigation and filtering contract](docs/mvp/13-reviewed-navigation-and-filtering.md). This is a reviewed destination interaction prototype, not automatic reconstruction of arbitrary SPFx behavior. Browser acceptance and matched source fidelity remain release gates.
+
+## MVP milestone 14 — Behavior discovery and independently checked output
+
+After compiling a target, inspect `behavior-evidence.json` or the **Behavior evidence** tab in Migration Studio. The report distinguishes source script evidence, structural authoring candidates, unsupported web parts, approved destination mappings and static HTML contract failures. No source scripts are executed or copied, and heading structure alone never proves tabs or accordions existed in SharePoint.
+
+An optional offline Chromium command checks the generated destination's controls at desktop and mobile widths; see [Behavior evidence and target acceptance](docs/mvp/14-behavior-evidence-and-target-acceptance.md). Source-versus-destination behavior and visual parity remain **unverified** without a matched original-page baseline.
