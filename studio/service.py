@@ -284,6 +284,63 @@ class ProjectStore:
         return {'report': report, 'css':css, 'applied':False,
                 'note':'Review-only. No source CSS is automatically applied to the migrated page.'}
 
+    def review_visual(self, project_id: str, mode: str, source_png: bytes, viewport_width: int, *, target_screenshot: bytes | None = None) -> dict:
+        """Compare a reviewer-supplied source PNG to a network-isolated target capture.
+
+        Never exports the original screenshot or derived pixel heatmap. Only the
+        numerical report is stored in this project's local export.
+        The optional injected target is for tests; the HTTP API never accepts it.
+        """
+        if mode not in {'client', 'structural'}:
+            raise ValueError('Unknown output mode')
+        project = self._project(project_id)
+        output = project.outputs.get(mode)
+        if output is None:
+            raise ValueError('Generate a destination before visual review')
+        if viewport_width not in (390, 1440) or type(viewport_width) is not int:
+            raise ValueError('VISUAL_VIEWPORT_INVALID: Studio supports 390 or 1440')
+        # Validate the source screenshot before invoking an expensive browser.
+        from poc.visual_compare import _decode_png
+        baseline=_decode_png(source_png)
+        if baseline.width != viewport_width:
+            raise ValueError('VISUAL_VIEWPORT_MISMATCH: source PNG width must equal the declared viewport')
+        if target_screenshot is None:
+            from tempfile import TemporaryDirectory
+            from pathlib import Path, PurePosixPath
+            from poc.browser_audit import audit_browser_page
+            with TemporaryDirectory(prefix='migration-visual-') as scratch:
+                workspace = Path(scratch)
+                for name, data in output.files.items():
+                    path = PurePosixPath(name)
+                    if path.is_absolute() or '..' in path.parts or not path.parts or not isinstance(data, bytes):
+                        raise ValueError('VISUAL_TARGET_INVALID: non-portable generated file')
+                    destination=workspace.joinpath(*path.parts)
+                    destination.parent.mkdir(parents=True,exist_ok=True)
+                    destination.write_bytes(data)
+                review_dir=workspace/'browser-review'
+                browser_report=audit_browser_page(workspace/'index.html',review_dir)
+                label='mobile' if viewport_width==390 else 'desktop'
+                target_screenshot=(review_dir/(label+'.png')).read_bytes()
+                structural_passed=browser_report['structuralPassed']
+        else:
+            structural_passed=None
+        from poc.visual_compare import compare_screenshots
+        report,heatmap=compare_screenshots(source_png,target_screenshot,viewport_width=viewport_width,include_heatmap=True)
+        report['destinationCapture']='offline-static-chromium-js-disabled-network-blocked' if structural_passed is not None else 'test-injected-target-png'
+        report['destinationStructuralPassed']=structural_passed
+        report['baselineProvenance']='reviewer-asserted-unverified'
+        report['reviewRequired']=True
+        report['releaseApproved']=False
+        # Do not bundle uploaded originals, generated screenshot or heatmap.
+        output.files['visual-review.json']=(json.dumps(report,indent=2)+'\n').encode('utf-8')
+        manifest=json.loads(output.files['manifest.json'])
+        manifest['files']=sorted(output.files)
+        output.files['manifest.json']=(json.dumps(manifest,indent=2)+'\n').encode('utf-8')
+        import base64
+        return {'report':report,'heatmapDataUrl':'data:image/png;base64,'+base64.b64encode(heatmap).decode('ascii'),
+                'exportedArtifacts':['visual-review.json'], 'sourceScreenshotExported':False,
+                'note':'Comparison is review-only: user-supplied baseline and no authenticated SharePoint source render.'}
+
     def output_file(self, project_id: str, mode: str, file_path: str) -> bytes:
         project = self._project(project_id)
         result = project.outputs.get(mode)
