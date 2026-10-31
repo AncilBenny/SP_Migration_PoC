@@ -28,6 +28,15 @@ BEHAVIOR_CSS = '''/* Compiler-owned, scoped interactive controls. */
 .mig-tabs [role="tab"]:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .mig-tabs [role="tabpanel"]:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .mig-tabs[data-enhanced="true"] .mig-tab-panel > h2:first-child, .mig-tabs[data-enhanced="true"] .mig-tab-panel > h3:first-child { display: none; }
+.mig-toc nav { border: 1px solid #d3dce3; border-radius: .35rem; padding: .75rem 1.25rem; margin-bottom: 1rem; }
+.mig-toc-label { font-weight: 700; }
+.mig-toc-section { scroll-margin-top: 1rem; }
+.mig-filter-controls { margin: 0 0 1rem; }
+.mig-filter-controls label { display: block; font-weight: 700; margin-bottom: .3rem; }
+.mig-filter-controls input { font: inherit; padding: .5rem; width: min(100%, 28rem); border: 1px solid #7b8996; border-radius: .25rem; }
+.mig-filter-controls input:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.mig-link-filter [data-filter-item][hidden] { display: none !important; }
+.mig-filter-status { margin: .7rem 0; }
 '''
 
 # Trusted fixed script compiled with the application, never provided by the page.
@@ -88,6 +97,28 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     activate(initial);
   });
+  document.querySelectorAll('.mig-link-filter[data-behavior="filterLinks"]').forEach((root) => {
+    const controls = root.querySelector('.mig-filter-controls');
+    const field = controls?.querySelector('input[type="search"]');
+    const status = root.querySelector('.mig-filter-status');
+    const items = Array.from(root.querySelectorAll('[data-filter-item]'));
+    if (!controls || !field || !status || items.length === 0) return;
+    // Only filters local link labels; no remote lookups or source script execution.
+    const refresh = () => {
+      const query = field.value.trim().toLocaleLowerCase();
+      let visible = 0;
+      items.forEach((item) => {
+        const matched = item.textContent.toLocaleLowerCase().includes(query);
+        item.hidden = !matched;
+        if (matched) visible += 1;
+      });
+      status.textContent = visible + ' of ' + items.length + ' resources shown';
+    };
+    controls.hidden = false;
+    status.hidden = false;
+    field.addEventListener('input', refresh);
+    refresh();
+  });
 });
 '''
 
@@ -102,8 +133,12 @@ def validate_behavior_mappings(raw: object) -> dict[str, dict]:
         key = entry.get('nodeId')
         if not isinstance(key, str) or not ID.fullmatch(key) or key in result:
             raise ValueError('BEHAVIOR_INVALID_PLAN: invalid/duplicate nodeId')
-        if entry.get('interaction') not in {'accordion', 'tabs'}:
+        if entry.get('interaction') not in {'accordion', 'tabs', 'toc', 'filterLinks'}:
             raise ValueError('BEHAVIOR_INVALID_PLAN: unsupported interaction')
+        if entry['interaction'] == 'filterLinks' and ({'headingLevel', 'initialIndex'} & set(entry)):
+            raise ValueError('BEHAVIOR_INVALID_PLAN: filtering does not use heading or initial tab fields')
+        if entry['interaction'] == 'toc' and 'initialIndex' in entry:
+            raise ValueError('BEHAVIOR_INVALID_PLAN: navigation does not use initialIndex')
         if type(entry.get('headingLevel', 2)) is not int or entry.get('headingLevel', 2) not in (2, 3):
             raise ValueError('BEHAVIOR_INVALID_PLAN: headingLevel must be 2 or 3')
         if type(entry.get('initialIndex', 0)) is not int or not 0 <= entry.get('initialIndex', 0) <= 20:
@@ -196,15 +231,36 @@ class _TextCollector(HTMLParser):
     def handle_data(self, data): self.parts.append(data)
 
 
-def compile_behavior(node_id: str, safe_html: str, mapping: dict) -> tuple[str, bool, dict]:
+def compile_behavior(node_id: str, safe_html: str, mapping: dict, *, content_marker: str = "") -> tuple[str, bool, dict]:
     """Return HTML with original node text once, JS-needed flag, and traceability."""
     level = mapping.get('headingLevel', 2)
     interaction = mapping['interaction']
+    if interaction == 'filterLinks':
+        raise ValueError('BEHAVIOR_INVALID_PLAN: filterLinks requires a linkList node')
     sections = _SectionParser(f'h{level}').sections_from(safe_html)
     initial = mapping.get('initialIndex', 0)
     if initial >= len(sections):
         raise ValueError('BEHAVIOR_INVALID_PLAN: initialIndex exceeds panel count')
     slug = sha256(node_id.encode('utf-8')).hexdigest()[:12]
+    if interaction == 'toc':
+        anchors = []
+        panels = []
+        for i, section in enumerate(sections):
+            anchor = f'mig-section-{slug}-{i}'
+            collector = _TextCollector()
+            collector.feed(section['headingHtml'])
+            label = collector.text.strip()
+            anchors.append(f'<li><a href="#{anchor}">{escape(label)}</a></li>')
+            panels.append(f'<section id="{anchor}" class="mig-toc-section">' +
+                          section['headingOpen'] + section['headingHtml'] + f'</h{level}>' +
+                          section['bodyHtml'] + '</section>')
+        compiled = ('<div class="mig-toc" data-behavior="toc">' +
+                    '<nav aria-label="On this page"><p class="mig-toc-label">On this page</p><ol>' +
+                    ''.join(anchors) + '</ol></nav>' + f'<div class="mig-toc-content"{content_marker}>' +
+                    ''.join(panels) + '</div></div>')
+        return compiled, False, {'nodeId': node_id, 'interaction': interaction,
+                                 'panels': len(sections), 'headingLevel': level,
+                                 'review': 'target-anchor-and-layout-validation-required'}
     if interaction == 'accordion':
         blocks = []
         for i, section in enumerate(sections):
@@ -225,3 +281,20 @@ def compile_behavior(node_id: str, safe_html: str, mapping: dict) -> tuple[str, 
     return compiled, interaction == 'tabs', {'nodeId': node_id, 'interaction': interaction,
                                             'panels': len(sections), 'headingLevel': level,
                                             'review': 'visual-and-keyboard-browser-validation-required'}
+
+def compile_link_filter(node_id: str, rendered_html: str, item_count: int) -> tuple[str, bool, dict]:
+    """Enhance a rendered linkList. All links remain visible without JavaScript."""
+    if not 1 <= item_count <= 200:
+        raise ValueError('BEHAVIOR_UNSUPPORTED_STRUCTURE: link filter requires 1-200 safe links')
+    slug = sha256(node_id.encode('utf-8')).hexdigest()[:12]
+    search_id = f'mig-filter-{slug}'
+    compiled = (f'<div class="mig-link-filter" data-behavior="filterLinks">'
+                '<div class="mig-filter-controls" hidden>'
+                f'<label for="{search_id}">Filter resources</label>'
+                f'<input type="search" id="{search_id}" autocomplete="off"'
+                ' placeholder="Search these resources">'
+                '</div>' + rendered_html +
+                '<p class="mig-filter-status" role="status" aria-live="polite" hidden></p></div>')
+    return compiled, True, {'nodeId': node_id, 'interaction': 'filterLinks',
+                             'items': item_count,
+                             'review': 'filter-results-and-keyboard-validation-required'}
