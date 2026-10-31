@@ -103,7 +103,7 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
     style_policy = profile.get('stylePolicy', 'target')
     source_styles, style_summary = compile_stylesheet(ir, style_policy)
     present = presentation_report(ir, style_summary)
-    from .behavior_compiler import validate_behavior_mappings, compile_behavior, BEHAVIOR_CSS
+    from .behavior_compiler import validate_behavior_mappings, compile_behavior, compile_link_filter, BEHAVIOR_CSS
     behavior_plan = validate_behavior_mappings(profile.get('behaviorMappings', []))
     behavior_done = []
     behavior_scripts = set()
@@ -153,11 +153,15 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
             # Sanitize again: a CIR file may be modified independently of extraction.
             rich_html = rewrite_rich_html(str(props.get('safeHtml', '')), base_url, rules, url_audit, node_id=str(node.get('id', '')), root_mappings=root_mappings, keep_source_styles=style_policy=='source-safe')
             if node['id'] in behavior_plan:
-                compiled, js_needed, result = compile_behavior(str(node['id']), rich_html, behavior_plan[node['id']])
+                compiled, js_needed, result = compile_behavior(str(node['id']), rich_html, behavior_plan[node['id']], content_marker=marker)
                 rich_html = compiled
                 behavior_done.append(result)
                 if js_needed:
                     behavior_scripts.add('behavior.js')
+            # Generated on-page navigation is not original source content.
+            # Keep its links outside the independent preservation marker.
+            if node['id'] in behavior_plan and behavior_plan[node['id']]['interaction'] == 'toc':
+                return f'<div class="target-body">{rich_html}</div>'
             return f'<div class="target-body"{marker}>{rich_html}</div>'
         if target == 'media':
             original_src = str(props.get('src', ''))
@@ -187,21 +191,34 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
                     continue
                 items.append((escape(str(link.get('label', ''))), escape(href, quote=True)))
             title = escape(profile.get('labels', {}).get('resourcesHeading', 'Resources'))
+            enhanced = node['id'] in behavior_plan
             if target == 'simpleLinks':
-                links = ''.join(f'<li><a href="{href}">{label}</a></li>' for label, href in items)
-                return f'<nav class="target-links"{marker} aria-label="{title}"><h2>{title}</h2><ul>{links}</ul></nav>'
-            cards = ''.join(f'<article class="target-resource"><a href="{href}">{label}</a></article>' for label, href in items)
-            return f'<section class="target-resources"{marker} aria-label="{title}"><h2>{title}</h2><div class="target-cards">{cards}</div></section>'
+                attr = ' data-filter-item' if enhanced else ''
+                links = ''.join(f'<li{attr}><a href="{href}">{label}</a></li>' for label, href in items)
+                result = f'<nav class="target-links"{marker} aria-label="{title}"><h2>{title}</h2><ul>{links}</ul></nav>'
+            else:
+                attr = ' data-filter-item' if enhanced else ''
+                cards = ''.join(f'<article class="target-resource"{attr}><a href="{href}">{label}</a></article>' for label, href in items)
+                result = f'<section class="target-resources"{marker} aria-label="{title}"><h2>{title}</h2><div class="target-cards">{cards}</div></section>'
+            if enhanced:
+                if behavior_plan[node['id']]['interaction'] != 'filterLinks':
+                    raise ValueError('BEHAVIOR_INVALID_PLAN: linkList supports filterLinks only')
+                result, js_needed, audit = compile_link_filter(str(node['id']), result, len(items))
+                behavior_done.append(audit)
+                if js_needed:
+                    behavior_scripts.add('behavior.js')
+            return result
         if target == 'reviewNote':
             diagnostics.append({'code': 'TARGET_UNKNOWN_CONTROL', 'nodeId': str(node.get('id', ''))})
             return f'<aside class="target-unmapped" role="note"{marker}>This source component requires manual mapping.</aside>'
         raise ValueError('Unreachable target mapping')
 
-    # An explicit mapping may only refer to an existing CIR rich-text node.
+    # A reviewed interaction must match the semantic IR node kind.
     eligible = {n['id']: n['kind'] for n in _all_nodes(ir['tree'])}
-    for node_id in behavior_plan:
-        if eligible.get(node_id) != 'richText':
-            raise ValueError('BEHAVIOR_INVALID_PLAN: mapping must name an existing richText node')
+    for node_id, plan in behavior_plan.items():
+        required_kind = 'linkList' if plan['interaction'] == 'filterLinks' else 'richText'
+        if eligible.get(node_id) != required_kind:
+            raise ValueError(f'BEHAVIOR_INVALID_PLAN: {plan["interaction"]} requires an existing {required_kind} node')
     body = node_html(ir['tree'])
     page = ir.get('page') or {}
     title = escape(str(page.get('title', 'Page')))
