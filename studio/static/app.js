@@ -14,7 +14,7 @@ function currentProfile(){
 }
 function setTab(tab){
   document.querySelectorAll('[data-tab]').forEach(b=>{const active=b.dataset.tab===tab;b.classList.toggle('selected',active);b.setAttribute('aria-selected',String(active));});
-  for(const name of ['preview','ir','quality','mapping','presentation']) $(name+'Panel').hidden=name!==tab;
+  for(const name of ['preview','ir','quality','mapping','presentation','behavior']) $(name+'Panel').hidden=name!==tab;
 }
 function fillResult(result){
   state.last=result;
@@ -23,6 +23,7 @@ function fillResult(result){
   $('qualityJson').textContent=JSON.stringify(result.quality,null,2);
   $('mappingJson').textContent=JSON.stringify(result.mappingReport,null,2);
   $('presentationJson').textContent=JSON.stringify(result.quality.presentation||{},null,2);
+  $('behaviorJson').textContent=JSON.stringify(result.mappingReport?.behaviorEvidence||result.quality.behaviorEvidence||{},null,2);
   $('preview').src=result.previewUrl;
   $('export').onclick=()=>{window.location.href=result.exportUrl;};
   setTab('preview');
@@ -63,14 +64,15 @@ async function analyze(){
   }catch(e){notice(e.message,true);}finally{$('analyze').disabled=false;}
 }
 function syncBehaviorChoices(){
-  const kind=$('behaviorNode').selectedOptions[0]?.dataset.kind;
+  const node=$('behaviorNode').selectedOptions[0];
+  const kind=node?.dataset.kind;
   const select=$('behaviorType');
   const previous=select.value;
-  const choices=kind==='linkList'
+  const available=kind==='linkList'
     ? [['filterLinks','Searchable Quick Links (minimal JS)']]
     : [['accordion','Native HTML accordion (no JS)'],['tabs','Accessible tab panels (minimal JS)'],['toc','On-page navigation (no JS)']];
-  select.replaceChildren(...choices.map(([value,label])=>new Option(label,value)));
-  select.value=choices.some(([value])=>value===previous)?previous:choices[0][0];
+  select.replaceChildren(...available.map(([value,label])=>new Option(label,value)));
+  select.value=available.some(([value])=>value===previous)?previous:available[0][0];
 }
 async function generate(){
   if(!state.projectId){return notice('Import source before generating',true);}
