@@ -158,8 +158,8 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
                 behavior_done.append(result)
                 if js_needed:
                     behavior_scripts.add('behavior.js')
-            # Generated on-page navigation is not original source content.
-            # Keep its links outside the independent preservation marker.
+            # Generated table-of-contents links are navigation, not source content:
+            # keep the canonical data-ir-id marker on the preserved source body only.
             if node['id'] in behavior_plan and behavior_plan[node['id']]['interaction'] == 'toc':
                 return f'<div class="target-body">{rich_html}</div>'
             return f'<div class="target-body"{marker}>{rich_html}</div>'
@@ -213,7 +213,7 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
             return f'<aside class="target-unmapped" role="note"{marker}>This source component requires manual mapping.</aside>'
         raise ValueError('Unreachable target mapping')
 
-    # A reviewed interaction must match the semantic IR node kind.
+    # Explicit behavior mappings must match the expected semantic CIR kind.
     eligible = {n['id']: n['kind'] for n in _all_nodes(ir['tree'])}
     for node_id, plan in behavior_plan.items():
         required_kind = 'linkList' if plan['interaction'] == 'filterLinks' else 'richText'
@@ -247,6 +247,10 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
     from .style_compiler import format_generated_css
     report['presentation'] = present
     report['behavior'] = {'compiled':behavior_done, 'scriptAssets':sorted(behavior_scripts), 'sourceRuntimeCopied':False, 'fidelity':'interaction-not-verified-in-browser'}
+    from .behavior_evidence import compare_destination_behavior
+    report['behaviorEvidence'] = compare_destination_behavior(ir, html, profile, report)
+    if not report['behaviorEvidence']['passed']:
+        raise ValueError('BEHAVIOR_TARGET_CONTRACT_FAILED: compiled interaction does not match generated HTML')
     return html, format_generated_css(css), report
 
 
@@ -257,6 +261,7 @@ def build_target(ir_path: Path, profile_path: Path, out: Path, *, strict: bool =
     html, css, report = render_target(ir, profile)
     out.mkdir(parents=True, exist_ok=True)
     (out / 'index.html').write_text(html, encoding='utf-8')
+    (out / 'behavior-evidence.json').write_text(json.dumps(report['behaviorEvidence'], indent=2) + '\n', encoding='utf-8')
     if report['behavior']['scriptAssets']:
         from .behavior_compiler import BEHAVIOR_JS
         (out / 'behavior.js').write_text(BEHAVIOR_JS, encoding='utf-8')
