@@ -55,7 +55,7 @@
           <select id="behaviorNode"><option value="">Do not convert source behavior</option></select>
           <label for="behaviorType">Target interaction</label>
           <select id="behaviorType"><option value="accordion">Native HTML accordion (no JS)</option><option value="tabs">Accessible tab panels (minimal JS)</option><option value="toc">On-page navigation (no JS)</option><option value="filterLinks">Searchable Quick Links (minimal JS)</option></select>
-          <p class="fine">Choose rich text with 2+ h2 sections for accordion, tabs or navigation; choose Quick Links for local filtering. Untrusted SharePoint scripts are never transferred. The sandboxed Studio preview does not execute JS; exported tabs work when served locally.</p>
+          <p class="fine">Choose a rich-text node with 2+ h2 sections for accordion, tabs, or page navigation; choose a Quick Links node for local filtering. Untrusted SharePoint scripts are never transferred. The sandboxed Studio preview does not execute JS; exported tabs work when served locally.</p>
           <label for="resourceTitle">Resource section heading</label><input type="text" id="resourceTitle" value="Useful resources" maxlength="120">
           <details class="root-settings"><summary>URL roots · pages / images / documents</summary>
             <p class="fine">Each reference retains its path after the source root. Page routes can remove .aspx; asset roots are separate. Remote URLs are not downloaded automatically.</p>
@@ -73,7 +73,7 @@
     <section class="results" id="results" hidden>
       <div class="result-top"><div><span class="eyebrow">MIGRATION RESULT</span><h2 id="projectTitle">Generated page</h2></div><div class="result-actions"><button id="rebuild" class="secondary">Refresh preview</button><button class="primary" id="export">Export ZIP ↓</button></div></div>
       <div class="metrics"><div><strong id="metricNodes">0</strong><span>IR nodes</span></div><div><strong id="metricWarnings">0</strong><span>Warnings</span></div><div><strong id="metricPreserved">0</strong><span>Preserved controls</span></div><div><strong id="metricStatus">—</strong><span>Quality checks</span></div></div>
-      <div class="tabs" role="tablist" aria-label="Results"><button class="selected" data-tab="preview" role="tab" aria-selected="true">Live preview</button><button data-tab="ir" role="tab" aria-selected="false">Clean IR</button><button data-tab="quality" role="tab" aria-selected="false">Validation report</button><button data-tab="mapping" role="tab" aria-selected="false">Mapping trace</button><button data-tab="presentation" role="tab" aria-selected="false">Styles & scripts</button></div>
+      <div class="tabs" role="tablist" aria-label="Results"><button class="selected" data-tab="preview" role="tab" aria-selected="true">Live preview</button><button data-tab="ir" role="tab" aria-selected="false">Clean IR</button><button data-tab="quality" role="tab" aria-selected="false">Validation report</button><button data-tab="mapping" role="tab" aria-selected="false">Mapping trace</button><button data-tab="presentation" role="tab" aria-selected="false">Styles & scripts</button><button data-tab="behavior" role="tab" aria-selected="false">Behavior evidence</button></div>
       <div id="previewPanel" class="tab-panel"><div class="browser-bar"><span class="dots">● ● ●</span><span>Generated HTML / CSS · Sandboxed preview</span></div><iframe id="preview" title="Migrated webpage preview" sandbox=""></iframe></div>
       <div id="irPanel" class="tab-panel" hidden><div class="data-head">Framework-independent canonical document <button class="secondary" id="copyIr">Copy JSON</button></div><pre id="irJson"></pre></div>
       <div id="qualityPanel" class="tab-panel" hidden><div class="data-head">Content preservation and quality checks</div><pre id="qualityJson"></pre></div>
@@ -90,7 +90,7 @@
           <button class="secondary" id="reviewCss" type="button">Analyze CSS and component mappings</button>
           <pre id="cssReviewJson" aria-label="Stylesheet analysis report"></pre>
         </details>
-      </div><div id="mappingPanel" class="tab-panel" hidden><div class="data-head">Per-control target mappings and rewrites</div><pre id="mappingJson"></pre></div>
+      </div><div id="behaviorPanel" class="tab-panel" hidden><div class="data-head">Source evidence, approved interactions, and target contract checks</div><p class="fine">Structural headings are candidates only. A successful target check does not establish original SharePoint behavior or visual fidelity.</p><pre id="behaviorJson"></pre></div><div id="mappingPanel" class="tab-panel" hidden><div class="data-head">Per-control target mappings and rewrites</div><pre id="mappingJson"></pre></div>
       <p class="fine disclaimer">Visual fidelity is not verified: public samples do not provide a matched original page screenshot and computed CSS. Unsupported controls remain flagged for review.</p>
     </section>
     <div id="notice" role="status" aria-live="polite" class="notice" hidden></div>
