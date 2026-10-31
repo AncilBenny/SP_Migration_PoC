@@ -110,6 +110,10 @@ class ComponentVisualReviewTests(unittest.TestCase):
         self.assertEqual(result['report']['componentAttribution'],'unavailable-no-target-dom-geometry')
 
     def test_offline_chromium_capture_traces_target_nodes_and_keeps_images_private(self):
+        try:
+            import playwright.sync_api  # optional browser-audit dependency
+        except ImportError:
+            self.skipTest('Optional Playwright not installed')
         import shutil
         if not (shutil.which('chromium') or shutil.which('chromium-browser') or shutil.which('google-chrome')):
             self.skipTest('Local Chromium unavailable')
