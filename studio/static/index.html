@@ -73,7 +73,7 @@
     <section class="results" id="results" hidden>
       <div class="result-top"><div><span class="eyebrow">MIGRATION RESULT</span><h2 id="projectTitle">Generated page</h2></div><div class="result-actions"><button id="rebuild" class="secondary">Refresh preview</button><button class="primary" id="export">Export ZIP ↓</button></div></div>
       <div class="metrics"><div><strong id="metricNodes">0</strong><span>IR nodes</span></div><div><strong id="metricWarnings">0</strong><span>Warnings</span></div><div><strong id="metricPreserved">0</strong><span>Preserved controls</span></div><div><strong id="metricStatus">—</strong><span>Quality checks</span></div></div>
-      <div class="tabs" role="tablist" aria-label="Results"><button class="selected" data-tab="preview" role="tab" aria-selected="true">Live preview</button><button data-tab="ir" role="tab" aria-selected="false">Clean IR</button><button data-tab="quality" role="tab" aria-selected="false">Validation report</button><button data-tab="mapping" role="tab" aria-selected="false">Mapping trace</button><button data-tab="presentation" role="tab" aria-selected="false">Styles & scripts</button><button data-tab="behavior" role="tab" aria-selected="false">Behavior evidence</button></div>
+      <div class="tabs" role="tablist" aria-label="Results"><button class="selected" data-tab="preview" role="tab" aria-selected="true">Live preview</button><button data-tab="ir" role="tab" aria-selected="false">Clean IR</button><button data-tab="quality" role="tab" aria-selected="false">Validation report</button><button data-tab="mapping" role="tab" aria-selected="false">Mapping trace</button><button data-tab="presentation" role="tab" aria-selected="false">Styles & scripts</button><button data-tab="behavior" role="tab" aria-selected="false">Behavior evidence</button><button data-tab="visual" role="tab" aria-selected="false">Visual comparison</button></div>
       <div id="previewPanel" class="tab-panel"><div class="browser-bar"><span class="dots">● ● ●</span><span>Generated HTML / CSS · Sandboxed preview</span></div><iframe id="preview" title="Migrated webpage preview" sandbox=""></iframe></div>
       <div id="irPanel" class="tab-panel" hidden><div class="data-head">Framework-independent canonical document <button class="secondary" id="copyIr">Copy JSON</button></div><pre id="irJson"></pre></div>
       <div id="qualityPanel" class="tab-panel" hidden><div class="data-head">Content preservation and quality checks</div><pre id="qualityJson"></pre></div>
@@ -90,6 +90,17 @@
           <button class="secondary" id="reviewCss" type="button">Analyze CSS and component mappings</button>
           <pre id="cssReviewJson" aria-label="Stylesheet analysis report"></pre>
         </details>
+      </div><div id="visualPanel" class="tab-panel" hidden>
+        <div class="data-head">Source baseline vs generated page — visual review</div>
+        <p class="fine">Upload an authorized PNG screenshot of the original source page captured at the selected width. Migration Studio makes an offline Chromium screenshot of the current generated page (JavaScript disabled, external requests blocked). The two full-page images are compared without scaling. A difference is not automatically a migration failure, and a similarity is not proof of fidelity.</p>
+        <label for="visualViewport">Matching screenshot viewport width</label>
+        <select id="visualViewport"><option value="1440">Desktop · 1440 px</option><option value="390">Mobile · 390 px</option></select>
+        <label for="visualBaseline">Original source PNG screenshot (max 1.5 MB, remains local)</label>
+        <input id="visualBaseline" type="file" accept="image/png,.png">
+        <button class="secondary" id="reviewVisual" type="button">Compare source and destination</button>
+        <p class="fine">Only visual-review.json metrics are added to the export. Neither the uploaded source screenshot nor the heatmap is packaged. Install optional requirements-visual.txt for comparison.</p>
+        <img id="visualHeatmap" alt="Visual difference heatmap with changed pixels highlighted red and unmatched page height highlighted amber" style="display:none;width:100%;height:auto;max-width:100%;" />
+        <pre id="visualJson" aria-label="Visual comparison review metrics"></pre>
       </div><div id="behaviorPanel" class="tab-panel" hidden><div class="data-head">Source evidence, approved interactions, and target contract checks</div><p class="fine">Structural headings are candidates only. A successful target check does not establish original SharePoint behavior or visual fidelity.</p><pre id="behaviorJson"></pre></div><div id="mappingPanel" class="tab-panel" hidden><div class="data-head">Per-control target mappings and rewrites</div><pre id="mappingJson"></pre></div>
       <p class="fine disclaimer">Visual fidelity is not verified: public samples do not provide a matched original page screenshot and computed CSS. Unsupported controls remain flagged for review.</p>
     </section>
