@@ -142,6 +142,10 @@ async function init(){
       const bytes=new Uint8Array(buffer);
       let binary='';for(let i=0;i<bytes.length;i+=16384){binary+=String.fromCharCode(...bytes.subarray(i,i+16384));}
       const result=await api('/api/visual-review',{projectId:state.projectId,mode:state.last.mode,viewportWidth:width,sourcePngBase64:btoa(binary)});
+      const findings=result.report.componentDifferences;
+      $('visualComponentSummary').textContent=findings
+        ? `${findings.reviewedNodeCount} rendered CIR components checked; ${findings.affectedNodeCount} overlap changed or unmatched pixels. Attribution is only geometric.`
+        : 'Component bounds unavailable for this capture.';
       $('visualJson').textContent=JSON.stringify(result.report,null,2);
       $('visualHeatmap').src=result.heatmapDataUrl;$('visualHeatmap').style.display='block';
       notice('Visual difference review complete. Only metrics are added to export; fidelity still needs human approval.');
