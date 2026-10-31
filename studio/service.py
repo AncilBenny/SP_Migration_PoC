@@ -322,13 +322,19 @@ class ProjectStore:
                 label='mobile' if viewport_width==390 else 'desktop'
                 target_screenshot=(review_dir/(label+'.png')).read_bytes()
                 structural_passed=browser_report['structuralPassed']
+                component_geometry=browser_report['viewports'][label]['componentGeometry']
         else:
             structural_passed=None
+            component_geometry=None
         from poc.visual_compare import compare_screenshots
-        report,heatmap=compare_screenshots(source_png,target_screenshot,viewport_width=viewport_width,include_heatmap=True)
+        report,heatmap=compare_screenshots(source_png,target_screenshot,viewport_width=viewport_width,include_heatmap=True,
+                                            components=component_geometry,
+                                            node_mappings=output.report.get('nodeMappings',[]) if component_geometry is not None else None)
         report['destinationCapture']='offline-static-chromium-js-disabled-network-blocked' if structural_passed is not None else 'test-injected-target-png'
         report['destinationStructuralPassed']=structural_passed
         report['baselineProvenance']='reviewer-asserted-unverified'
+        report['componentAttribution']='overlap-only-not-root-cause' if component_geometry is not None else 'unavailable-no-target-dom-geometry'
+        report['componentGeometrySource']='matching-offline-chromium-capture' if component_geometry is not None else 'not-captured' 
         report['reviewRequired']=True
         report['releaseApproved']=False
         # Do not bundle uploaded originals, generated screenshot or heatmap.
