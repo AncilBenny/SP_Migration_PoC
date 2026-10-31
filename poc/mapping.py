@@ -37,7 +37,7 @@ def validate_profile(profile: dict) -> dict:
         raise ValueError('Expected target mapping profile version 1.0')
     if not isinstance(profile.get('id'), str) or not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,63}', profile['id']):
         raise ValueError('Invalid profile id')
-    if set(profile) - {'version', 'id', 'components', 'colors', 'layout', 'font', 'labels', 'urlMappings', 'assetDirectory', 'rootMappings', 'stylePolicy'}:
+    if set(profile) - {'version', 'id', 'components', 'colors', 'layout', 'font', 'labels', 'urlMappings', 'assetDirectory', 'rootMappings', 'stylePolicy', 'behaviorMappings'}:
         raise ValueError('Unknown profile configuration keys')
     components = profile.get('components', {})
     if not isinstance(components, dict):
@@ -71,7 +71,17 @@ def validate_profile(profile: dict) -> dict:
         raise ValueError('assetDirectory must be a simple safe folder name')
     validate_url_mappings(profile.get('urlMappings', []))
     validate_root_mappings(profile.get('rootMappings', []))
+    from .behavior_compiler import validate_behavior_mappings
+    validate_behavior_mappings(profile.get('behaviorMappings', []))
     return profile
+
+
+def _all_nodes(root: dict):
+    stack = [root]
+    while stack:
+        node = stack.pop()
+        yield node
+        stack.extend(node.get('children', []))
 
 
 def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
@@ -93,6 +103,10 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
     style_policy = profile.get('stylePolicy', 'target')
     source_styles, style_summary = compile_stylesheet(ir, style_policy)
     present = presentation_report(ir, style_summary)
+    from .behavior_compiler import validate_behavior_mappings, compile_behavior, BEHAVIOR_CSS
+    behavior_plan = validate_behavior_mappings(profile.get('behaviorMappings', []))
+    behavior_done = []
+    behavior_scripts = set()
 
     def node_html(node: dict) -> str:
         kind = node.get('kind')
@@ -137,7 +151,14 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
             return f'<header class="target-header"{marker}><div class="target-wrap">{figure}{subtitle}<h1>{escape(str(data.get("text", "")))}</h1></div></header>'
         if target == 'contentBody':
             # Sanitize again: a CIR file may be modified independently of extraction.
-            return f'<div class="target-body"{marker}>{rewrite_rich_html(str(props.get("safeHtml", "")), base_url, rules, url_audit, node_id=str(node.get("id", "")), root_mappings=root_mappings, keep_source_styles=style_policy=='source-safe')}</div>'
+            rich_html = rewrite_rich_html(str(props.get('safeHtml', '')), base_url, rules, url_audit, node_id=str(node.get('id', '')), root_mappings=root_mappings, keep_source_styles=style_policy=='source-safe')
+            if node['id'] in behavior_plan:
+                compiled, js_needed, result = compile_behavior(str(node['id']), rich_html, behavior_plan[node['id']])
+                rich_html = compiled
+                behavior_done.append(result)
+                if js_needed:
+                    behavior_scripts.add('behavior.js')
+            return f'<div class="target-body"{marker}>{rich_html}</div>'
         if target == 'media':
             original_src = str(props.get('src', ''))
             # Reuse assets already rewritten by the CIR build, instead of
@@ -176,6 +197,11 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
             return f'<aside class="target-unmapped" role="note"{marker}>This source component requires manual mapping.</aside>'
         raise ValueError('Unreachable target mapping')
 
+    # An explicit mapping may only refer to an existing CIR rich-text node.
+    eligible = {n['id']: n['kind'] for n in _all_nodes(ir['tree'])}
+    for node_id in behavior_plan:
+        if eligible.get(node_id) != 'richText':
+            raise ValueError('BEHAVIOR_INVALID_PLAN: mapping must name an existing richText node')
     body = node_html(ir['tree'])
     page = ir.get('page') or {}
     title = escape(str(page.get('title', 'Page')))
@@ -193,12 +219,17 @@ def render_target(ir: dict, profile: dict) -> tuple[str, str, dict]:
     if style_summary['emittedRules']:
         html = html.replace('</head>', '<link rel="stylesheet" href="source-styles.css"></head>')
     css += '.target-hero-image{display:block;max-width:100%;height:auto}.target-sidebar{width:100%}'
+    if behavior_done:
+        css += BEHAVIOR_CSS
+    if behavior_scripts:
+        html = html.replace('</body>', '<script src="behavior.js" defer></script></body>')
     report = {'profileId': profile['id'], 'inputFormat': 'canonical-page-ir', 'targetFormat': 'html-css',
               'mappedComponents': dict(counts), 'nodeMappings': node_mappings, 'urlRewrites': url_audit, 'assetRewrites': asset_rewrites, 'mappingWarnings': diagnostics,
               'sourceFidelity': 'not-evaluated-target-redesign-intent',
               'sharePointSourceReaderUsed': False}
     from .style_compiler import format_generated_css
     report['presentation'] = present
+    report['behavior'] = {'compiled':behavior_done, 'scriptAssets':sorted(behavior_scripts), 'sourceRuntimeCopied':False, 'fidelity':'interaction-not-verified-in-browser'}
     return html, format_generated_css(css), report
 
 
@@ -209,6 +240,9 @@ def build_target(ir_path: Path, profile_path: Path, out: Path, *, strict: bool =
     html, css, report = render_target(ir, profile)
     out.mkdir(parents=True, exist_ok=True)
     (out / 'index.html').write_text(html, encoding='utf-8')
+    if report['behavior']['scriptAssets']:
+        from .behavior_compiler import BEHAVIOR_JS
+        (out / 'behavior.js').write_text(BEHAVIOR_JS, encoding='utf-8')
     (out / 'style.css').write_text(css, encoding='utf-8')
     if report['presentation']['stylesheet']['emittedRules']:
         from .style_compiler import compile_stylesheet
@@ -237,6 +271,8 @@ def build_target(ir_path: Path, profile_path: Path, out: Path, *, strict: bool =
     acquisition_plan = plan_acquisition(ir, profile)
     (out / 'acquisition-plan.json').write_text(json.dumps(acquisition_plan, indent=2) + '\n', encoding='utf-8')
     export_files = {'index.html': html.encode('utf-8'), 'style.css': css.encode('utf-8')}
+    if report['behavior']['scriptAssets']:
+        export_files['behavior.js'] = (out / 'behavior.js').read_bytes()
     if report['presentation']['stylesheet']['emittedRules']:
         export_files['source-styles.css'] = (out / 'source-styles.css').read_bytes()
     for asset in ir.get('assets', []):
