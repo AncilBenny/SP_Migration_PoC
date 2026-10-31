@@ -102,7 +102,7 @@ class StudioHandler(BaseHTTPRequestHandler):
                 css = req.get('css')
                 if not isinstance(project_id, str) or not isinstance(css, str):
                     raise ValueError('Expected projectId and CSS text')
-                result = self.server.projects.review_stylesheet(project_id, req.get('mode', 'client'), css)
+                result = self.server.projects.review_stylesheet(project_id, req.get('mode', 'client'), css, selector_map=req.get('selectorMap'))
             elif path == '/api/analyze':
                 result = self.server.projects.analyze(sample_id=req.get('sampleId'), source=req.get('source'))
             else:
