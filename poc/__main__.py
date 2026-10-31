@@ -86,6 +86,8 @@ def main():
     visual.add_argument('--viewport-width', required=True, type=int, choices=[390, 768, 1024, 1440])
     visual.add_argument('--threshold', type=int, default=24, help='Max-channel pixel delta tolerance (0-100)')
     visual.add_argument('--out', type=Path, default=Path('visual-review'))
+    visual.add_argument('--browser-report', type=Path, help='Optional matching browser-audit.json; screenshot SHA-256 checked')
+    visual.add_argument('--mapping-report', type=Path, help='Optional client mapping-report.json for CIR component names')
     args = parser.parse_args()
     if args.command == 'build':
         result = build(args.input, args.out, Path(__file__).parent / 'assets', style_mode=args.style_mode)
@@ -106,7 +108,7 @@ def main():
             raise SystemExit('BEHAVIOR_BROWSER_AUDIT_FAILED: see output report')
     elif args.command == 'visual-compare':
         from .visual_compare import compare_screenshot_files
-        result = compare_screenshot_files(args.source_png, args.target_png, args.out, viewport_width=args.viewport_width, threshold=args.threshold)
+        result = compare_screenshot_files(args.source_png, args.target_png, args.out, viewport_width=args.viewport_width, threshold=args.threshold, browser_report=args.browser_report, mapping_report=args.mapping_report)
     elif args.command == 'browser-audit':
         from .browser_audit import audit_browser_page
         result = audit_browser_page(args.html, args.out)
