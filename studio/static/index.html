@@ -100,6 +100,8 @@
         <button class="secondary" id="reviewVisual" type="button">Compare source and destination</button>
         <p class="fine">Only visual-review.json metrics are added to the export. Neither the uploaded source screenshot nor the heatmap is packaged. Install optional requirements-visual.txt for comparison.</p>
         <img id="visualHeatmap" alt="Visual difference heatmap with changed pixels highlighted red and unmatched page height highlighted amber" style="display:none;width:100%;height:auto;max-width:100%;" />
+        <p class="fine">Changed pixels are ranked by overlap with generated CIR components; this does not identify the original CSS cause.</p>
+        <div id="visualComponentSummary" class="fine" aria-live="polite"></div>
         <pre id="visualJson" aria-label="Visual comparison review metrics"></pre>
       </div><div id="behaviorPanel" class="tab-panel" hidden><div class="data-head">Source evidence, approved interactions, and target contract checks</div><p class="fine">Structural headings are candidates only. A successful target check does not establish original SharePoint behavior or visual fidelity.</p><pre id="behaviorJson"></pre></div><div id="mappingPanel" class="tab-panel" hidden><div class="data-head">Per-control target mappings and rewrites</div><pre id="mappingJson"></pre></div>
       <p class="fine disclaimer">Visual fidelity is not verified: public samples do not provide a matched original page screenshot and computed CSS. Unsupported controls remain flagged for review.</p>
