@@ -256,3 +256,16 @@ See [reviewed navigation and filtering contract](docs/mvp/13-reviewed-navigation
 After compiling a target, inspect `behavior-evidence.json` or the **Behavior evidence** tab in Migration Studio. The report distinguishes source script evidence, structural authoring candidates, unsupported web parts, approved destination mappings and static HTML contract failures. No source scripts are executed or copied, and heading structure alone never proves tabs or accordions existed in SharePoint.
 
 An optional offline Chromium command checks the generated destination's controls at desktop and mobile widths; see [Behavior evidence and target acceptance](docs/mvp/14-behavior-evidence-and-target-acceptance.md). Source-versus-destination behavior and visual parity remain **unverified** without a matched original-page baseline.
+
+## MVP milestone 15: source-to-target screenshot difference review
+
+The local **Visual comparison** tab accepts a reviewer-supplied full-page source PNG at **390 px** or **1440 px** and captures the generated target in offline Chromium (network blocked, JavaScript disabled). It compares unscaled pixels, highlights changed regions in a transient heatmap, reports full-page height mismatches, and marks visual fidelity as **review-required even if the images match**. The supplied source screenshot and heatmap are never added to the export; `visual-review.json` contains only numerical evidence and hashes. CIR and target code stay unchanged.
+
+Optional dependencies: `python -m pip install -r requirements-visual.txt` and `python -m playwright install chromium`. For CLI-only review:
+
+```powershell
+python -m poc browser-audit --html demo-target/index.html --out browser-review
+python -m poc visual-compare --source-png authorized-source-desktop.png --target-png browser-review/desktop.png --viewport-width 1440 --out visual-review
+```
+
+See [Milestone 15 visual review contract and limits](docs/mvp/15-matched-visual-review.md). A baseline from a genuine source site must be **provided by an authorized reviewer**; generated sample screenshots cannot establish source fidelity.
