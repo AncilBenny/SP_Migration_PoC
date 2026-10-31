@@ -64,7 +64,7 @@ class StudioHandler(BaseHTTPRequestHandler):
                 data = self.server.projects.output_file(project, mode, relative)
             except KeyError:
                 return self.json_response(404, {'error': 'Preview not generated'})
-            mime = {'html': 'text/html; charset=utf-8', 'css': 'text/css; charset=utf-8', 'svg': 'image/svg+xml', 'json': 'application/json'}.get(Path(relative).suffix.lstrip('.'), 'application/octet-stream')
+            mime = {'html': 'text/html; charset=utf-8', 'css': 'text/css; charset=utf-8', 'svg': 'image/svg+xml', 'json': 'application/json', 'js': 'text/javascript; charset=utf-8'}.get(Path(relative).suffix.lstrip('.'), 'application/octet-stream')
             # A sandboxed iframe prevents source fragments from running scripts.
             return self.respond(200, data, mime, headers={'Content-Security-Policy': "default-src 'none'; style-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'"})
         if path.startswith('/api/export/'):
