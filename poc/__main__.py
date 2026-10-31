@@ -80,6 +80,12 @@ def main():
     behavior.add_argument('--profile', type=Path, required=True)
     behavior.add_argument('--mapping-report', type=Path, required=True)
     behavior.add_argument('--out', type=Path, default=Path('behavior-browser-report.json'))
+    visual = sub.add_parser('visual-compare', help='Offline source baseline vs generated screenshot: heatmap + review-only metrics')
+    visual.add_argument('--source-png', required=True, type=Path, help='Authorized source screenshot captured by a reviewer')
+    visual.add_argument('--target-png', required=True, type=Path, help='Generated screenshot from browser-audit desktop.png/mobile.png')
+    visual.add_argument('--viewport-width', required=True, type=int, choices=[390, 768, 1024, 1440])
+    visual.add_argument('--threshold', type=int, default=24, help='Max-channel pixel delta tolerance (0-100)')
+    visual.add_argument('--out', type=Path, default=Path('visual-review'))
     args = parser.parse_args()
     if args.command == 'build':
         result = build(args.input, args.out, Path(__file__).parent / 'assets', style_mode=args.style_mode)
@@ -98,6 +104,9 @@ def main():
         result = audit_behavior_browser_files(args.ir, args.html, args.profile, args.mapping_report, args.out)
         if not result['passed']:
             raise SystemExit('BEHAVIOR_BROWSER_AUDIT_FAILED: see output report')
+    elif args.command == 'visual-compare':
+        from .visual_compare import compare_screenshot_files
+        result = compare_screenshot_files(args.source_png, args.target_png, args.out, viewport_width=args.viewport_width, threshold=args.threshold)
     elif args.command == 'browser-audit':
         from .browser_audit import audit_browser_page
         result = audit_browser_page(args.html, args.out)
