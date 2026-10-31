@@ -96,7 +96,10 @@ async function init(){
     const file=$('cssFile').files[0];
     if(!file || file.size>200000) return notice('Choose a CSS file smaller than 200 KB',true);
     try {
-      const result=await api('/api/css-workbench',{projectId:state.projectId,mode:state.last.mode,css:await file.text()});
+      const mapFile=$('selectorMapFile').files[0];
+      if(mapFile && mapFile.size>16000) throw new Error('Selector mapping must be smaller than 16 KB');
+      const selectorMap=mapFile?JSON.parse(await mapFile.text()):null;
+      const result=await api('/api/css-workbench',{projectId:state.projectId,mode:state.last.mode,css:await file.text(),selectorMap});
       $('cssReviewJson').textContent=JSON.stringify(result.report,null,2);
       notice('CSS review complete. Candidates are included in export but NOT applied to the page.');
     }catch(error){notice(error.message,true);}
