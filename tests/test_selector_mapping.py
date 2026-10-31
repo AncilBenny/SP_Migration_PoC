@@ -90,6 +90,46 @@ class SelectorMappingTests(unittest.TestCase):
         with ZipFile(io.BytesIO(studio.export(ident,'client'))) as z:
             self.assertNotIn('selector-mapping-review.json',z.namelist())
 
+    def test_http_api_mapping_and_invalid_manifest(self):
+        from studio.server import StudioHandler, StudioServer
+        from threading import Thread
+        from urllib.request import Request, urlopen
+        from urllib.error import HTTPError
+        server = StudioServer(('127.0.0.1', 0), StudioHandler)
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        base = f'http://127.0.0.1:{server.server_port}'
+
+        def post(path, data):
+            req = Request(base+path, data=json.dumps(data).encode(), headers={'Content-Type':'application/json'})
+            try:
+                with urlopen(req, timeout=5) as res:
+                    return res.status, json.loads(res.read())
+            except HTTPError as exc:
+                return exc.code, json.loads(exc.read())
+
+        try:
+            status, project = post('/api/analyze', {'sampleId':'modern-demo'})
+            self.assertEqual(status, 200)
+            ident = project['projectId']
+            status, _ = post('/api/render', {'projectId':ident, 'mode':'client'})
+            self.assertEqual(status, 200)
+            status, review = post('/api/css-workbench', {'projectId':ident, 'mode':'client',
+                                                         'css':CSS, 'selectorMap':MAPPING})
+            self.assertEqual(status, 200)
+            self.assertFalse(review['applied'])
+            self.assertEqual(review['report']['selectorMapping']['configured'], 4)
+            status, error = post('/api/css-workbench', {'projectId':ident, 'mode':'client',
+                                                       'css':CSS, 'selectorMap':{
+                                                           'version':'1.0', 'mappings':[
+                                                               {'sourceSelector':'h2', 'targetComponent':'body'}]}})
+            self.assertEqual(status, 400)
+            self.assertIn('CSS_MAPPING_UNKNOWN_COMPONENT', error['error'])
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=3)
+
     def test_cli_review_mode(self):
         with TemporaryDirectory() as tmp:
             html_file=Path(tmp)/'input.html'
