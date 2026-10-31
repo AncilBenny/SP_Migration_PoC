@@ -1,0 +1,3 @@
+# Optional offline Chromium target captures + the dev/test dependencies.
+-r requirements-dev.txt
+playwright>=1.54,<2
