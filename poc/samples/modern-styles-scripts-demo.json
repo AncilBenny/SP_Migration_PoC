@@ -1,0 +1,90 @@
+{
+  "_sampleProvenance": "Constructed regression example from public Microsoft Graph sitePage create/get, titleArea, verticalSection and standardWebPart contracts. NOT live tenant content.",
+  "_references": [
+    "https://learn.microsoft.com/en-us/graph/api/sitepage-create?view=graph-rest-1.0",
+    "https://learn.microsoft.com/en-us/graph/api/resources/verticalsection?view=graph-rest-1.0",
+    "https://learn.microsoft.com/en-us/graph/api/resources/titlearea?view=graph-rest-1.0"
+  ],
+  "@odata.type": "#microsoft.graph.sitePage",
+  "id": "modern-style-and-script-demo",
+  "webUrl": "https://example.org/sites/research/SitePages/Field-Guide.aspx",
+  "title": "CSS and script cleanup demo",
+  "description": "Synthetic Modern Graph-shaped demo exercising safe style compilation and script review. Not a real tenant page.",
+  "titleArea": {
+    "layout": "imageAndTitle",
+    "title": "Service field guide",
+    "textAboveTitle": "HIDDEN TOPIC",
+    "showTextBlockAboveTitle": false,
+    "textAlignment": "center",
+    "imageWebUrl": "/sites/research/SiteAssets/field-guide.jpg",
+    "alternativeText": "Illustrative field guide cover",
+    "enableGradientEffect": true,
+    "showAuthor": true,
+    "showPublishedDate": false
+  },
+  "canvasLayout": {
+    "horizontalSections": [
+      {
+        "id": "one",
+        "layout": "oneThirdRightColumn",
+        "emphasis": "soft",
+        "columns": [
+          {
+            "id": "left",
+            "width": 8,
+            "webparts": [
+              {
+                "id": "body-1",
+                "@odata.type": "#microsoft.graph.textWebPart",
+                "innerHtml": "<h2 style=\"color:#245279;font-size:28px\">Emergency guidance</h2><p style=\"font-weight:600;color:#245279\">Author styled content.</p><p style=\"color:#245279;font-weight:600\">Repeated formatting becomes one CSS class.</p><p><span style=\"background-color:#f2efdd;color:#245279\">Preserve or replace these styles per client.</span></p><p style=\"position:fixed; background-image:url(https://example.net/track.png); margin-top:16px\">Unsafe CSS is not imported.</p><script src=\"https://example.net/analytics.js\"></script><button onclick=\"alert(1)\">Unsupported click handler</button>"
+              }
+            ]
+          },
+          {
+            "id": "right",
+            "width": 4,
+            "webparts": [
+              {
+                "id": "links-1",
+                "@odata.type": "#microsoft.graph.standardWebPart",
+                "webPartType": "c70391ea-0b10-4ee9-b2b4-006d3fcad0cd",
+                "data": {
+                  "properties": {
+                    "items": [
+                      {
+                        "title": "About the guide",
+                        "url": "/sites/research/SitePages/about.aspx"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "verticalSection": {
+      "id": "sidebar-1",
+      "emphasis": "soft",
+      "webparts": [
+        {
+          "id": "sidebar-text",
+          "@odata.type": "#microsoft.graph.textWebPart",
+          "innerHtml": "<h3>Help</h3><p>Contact the project office.</p>"
+        },
+        {
+          "id": "inline-uncertain",
+          "@odata.type": "#microsoft.graph.standardWebPart",
+          "webPartType": "00000000-0000-0000-0000-000000000099",
+          "containerTextWebPartId": "sidebar-text",
+          "data": {
+            "properties": {
+              "custom": "Do not execute"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

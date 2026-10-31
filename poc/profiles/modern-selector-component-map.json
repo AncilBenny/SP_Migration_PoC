@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "mappings": [
+    {"sourceSelector": ".ms-rtestate-field > h2", "targetComponent": "content.heading2"},
+    {"sourceSelector": ".ms-rtestate-field > p", "targetComponent": "content.paragraph"},
+    {"sourceSelector": ".ms-wpheader h2", "targetComponent": "page.title"},
+    {"sourceSelector": ".ms-rtestate-field .resource-link", "targetComponent": "resource.link"}
+  ]
+}

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Local-first SharePoint page migration studio">
+  <title>Migration Studio · MVP</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="mark">M</span><div><strong>Migration Studio</strong><small>PRIVATE LOCAL WORKSPACE</small></div></div>
+    <div class="side-title">WORKFLOW</div>
+    <nav aria-label="Workflow" class="steps">
+      <div class="step active"><span>01</span>Import source</div>
+      <div class="step"><span>02</span>Inspect clean IR</div>
+      <div class="step"><span>03</span>Map destination</div>
+      <div class="step"><span>04</span>Validate & export</div>
+    </nav>
+    <div class="side-note"><strong>One adapter. Reusable core.</strong><p>Modern SharePoint is the first source. CIR and destination mapping remain generic.</p></div>
+    <details class="engine-readiness"><summary>Research & engine readiness</summary><ul id="engineReadiness"><li>Loading engineering status…</li></ul></details>
+    <div class="sidebar-foot">v0.1 prototype · Research-backed · No tenant login</div>
+  </aside>
+  <main class="workspace">
+    <header class="topbar"><div><span class="eyebrow">WORKSPACE / FIRST MIGRATION</span><h1>Build a clean page, then map it anywhere.</h1><p>Import one source, inspect its meaning, and generate a new client-ready webpage.</p></div><span class="pill">Local MVP</span></header>
+    <section class="overview" aria-label="Pipeline overview">
+      <div><span>01</span><strong>Source</strong><small>Modern SharePoint JSON</small></div><b>→</b>
+      <div><span>02</span><strong>Canonical IR</strong><small>Clean & traceable</small></div><b>→</b>
+      <div><span>03</span><strong>Target</strong><small>HTML + CSS + assets</small></div>
+    </section>
+    <div class="content-grid">
+      <section class="panel import-panel">
+        <div class="panel-head"><div><span class="eyebrow">STEP 01 · INPUT</span><h2>Import your page</h2></div><span class="muted">JSON only</span></div>
+        <label for="sample">Try a publicly available sample</label>
+        <select id="sample"><option value="">Loading examples...</option></select>
+        <div class="or"><span>OR UPLOAD A SOURCE FILE</span></div>
+        <label for="sourceFile" class="upload"><span class="upload-symbol">↥</span><strong>Choose a Modern SharePoint JSON export</strong><small>No file leaves your computer. Max 3 MB.</small></label>
+        <input id="sourceFile" type="file" accept=".json,application/json">
+        <div id="fileName" class="muted fine">No custom file selected</div>
+        <button class="primary full" id="analyze">Analyze & clean source <span>→</span></button>
+        <p class="fine">Uses published examples or a locally supplied Graph / CanvasContent1 JSON file. No SharePoint credentials required.</p>
+      </section>
+      <section class="panel mapping-panel">
+        <div class="panel-head"><div><span class="eyebrow">STEP 02 · TRANSFORM</span><h2>Choose destination</h2></div><span id="stageBadge" class="muted">Import first</span></div>
+        <label for="mode">Output intent</label>
+        <select id="mode"><option value="client">Client-mapped website</option><option value="structural">Clean structural HTML</option></select>
+        <div id="mappingControls">
+          <label for="primary">Target brand color</label><div class="color-line"><input type="color" id="primary" value="#263e52"><span id="colorLabel">#263e52</span></div>
+          <label for="links">Map Quick Links to</label><select id="links"><option value="resourceCards">Resource cards</option><option value="simpleLinks">Standard link list</option></select>
+          <label for="stylePolicy">Authored stylesheet policy</label>
+          <select id="stylePolicy"><option value="target">Use client design system (discard source styles intentionally)</option><option value="source-safe">Preserve safe source formatting in reusable CSS classes</option></select>
+          <label for="behaviorNode">Interaction mapping (explicit / review required)</label>
+          <select id="behaviorNode"><option value="">Do not convert source behavior</option></select>
+          <label for="behaviorType">Target interaction</label>
+          <select id="behaviorType"><option value="accordion">Native HTML accordion (no JS)</option><option value="tabs">Accessible tab panels (minimal JS)</option><option value="toc">On-page navigation (no JS)</option><option value="filterLinks">Searchable Quick Links (minimal JS)</option></select>
+          <p class="fine">Choose a rich-text node with 2+ h2 sections for accordion, tabs, or page navigation; choose a Quick Links node for local filtering. Untrusted SharePoint scripts are never transferred. The sandboxed Studio preview does not execute JS; exported tabs work when served locally.</p>
+          <label for="resourceTitle">Resource section heading</label><input type="text" id="resourceTitle" value="Useful resources" maxlength="120">
+          <details class="root-settings"><summary>URL roots · pages / images / documents</summary>
+            <p class="fine">Each reference retains its path after the source root. Page routes can remove .aspx; asset roots are separate. Remote URLs are not downloaded automatically.</p>
+            <label for="sourceRoot">SharePoint source root (HTTPS, ending /)</label><input type="url" id="sourceRoot" value="https://example.org/sites/demo/" spellcheck="false">
+            <label for="pageRoot">New page root</label><input type="text" id="pageRoot" value="https://internet.staging/" spellcheck="false">
+            <label for="imageRoot">New image root</label><input type="text" id="imageRoot" value="https://images.internet.staging/" spellcheck="false">
+            <label for="documentRoot">New document root</label><input type="text" id="documentRoot" value="https://documents.internet.staging/" spellcheck="false">
+            <label class="checkline" for="stripAspx"><input type="checkbox" id="stripAspx" checked> Remove .aspx extension from page destinations</label>
+          </details>
+        </div>
+        <button class="primary full" id="generate" disabled>Generate destination <span>→</span></button>
+        <p class="fine">Profiles change the output, never the imported IR.</p>
+      </section>
+    </div>
+    <section class="results" id="results" hidden>
+      <div class="result-top"><div><span class="eyebrow">MIGRATION RESULT</span><h2 id="projectTitle">Generated page</h2></div><div class="result-actions"><button id="rebuild" class="secondary">Refresh preview</button><button class="primary" id="export">Export ZIP ↓</button></div></div>
+      <div class="metrics"><div><strong id="metricNodes">0</strong><span>IR nodes</span></div><div><strong id="metricWarnings">0</strong><span>Warnings</span></div><div><strong id="metricPreserved">0</strong><span>Preserved controls</span></div><div><strong id="metricStatus">—</strong><span>Quality checks</span></div></div>
+      <div class="tabs" role="tablist" aria-label="Results"><button class="selected" data-tab="preview" role="tab" aria-selected="true">Live preview</button><button data-tab="ir" role="tab" aria-selected="false">Clean IR</button><button data-tab="quality" role="tab" aria-selected="false">Validation report</button><button data-tab="mapping" role="tab" aria-selected="false">Mapping trace</button><button data-tab="presentation" role="tab" aria-selected="false">Styles & scripts</button><button data-tab="behavior" role="tab" aria-selected="false">Behavior evidence</button><button data-tab="visual" role="tab" aria-selected="false">Visual comparison</button></div>
+      <div id="previewPanel" class="tab-panel"><div class="browser-bar"><span class="dots">● ● ●</span><span>Generated HTML / CSS · Sandboxed preview</span></div><iframe id="preview" title="Migrated webpage preview" sandbox=""></iframe></div>
+      <div id="irPanel" class="tab-panel" hidden><div class="data-head">Framework-independent canonical document <button class="secondary" id="copyIr">Copy JSON</button></div><pre id="irJson"></pre></div>
+      <div id="qualityPanel" class="tab-panel" hidden><div class="data-head">Content preservation and quality checks</div><pre id="qualityJson"></pre></div>
+      <div id="presentationPanel" class="tab-panel" hidden>
+        <div class="data-head">Compiled styles and source-script review</div>
+        <pre id="presentationJson"></pre>
+        <details class="root-settings"><summary>Analyze additional stylesheet (.css) — review only</summary>
+          <p class="fine">Imports, SPFx selectors, conditional CSS, scripts and unsafe properties are flagged; approved semantic candidates are scoped to rich text and included in the export for review, never auto-applied.</p>
+          <label for="cssFile">Upload locally supplied CSS (max 200 KB)</label>
+          <input id="cssFile" type="file" accept=".css,text/css">
+          <label for="selectorMapFile">Optional reviewed selector mapping (.json, max 16 KB)</label>
+          <p class="fine">Map exact SharePoint selectors to known destination components. Source selectors are never copied into the output CSS. This only generates review candidates; it does not apply them.</p>
+          <input id="selectorMapFile" type="file" accept=".json,application/json">
+          <button class="secondary" id="reviewCss" type="button">Analyze CSS and component mappings</button>
+          <pre id="cssReviewJson" aria-label="Stylesheet analysis report"></pre>
+        </details>
+      </div><div id="visualPanel" class="tab-panel" hidden>
+        <div class="data-head">Source baseline vs generated page — visual review</div>
+        <p class="fine">Upload an authorized PNG screenshot of the original source page captured at the selected width. Migration Studio makes an offline Chromium screenshot of the current generated page (JavaScript disabled, external requests blocked). The two full-page images are compared without scaling. A difference is not automatically a migration failure, and a similarity is not proof of fidelity.</p>
+        <label for="visualViewport">Matching screenshot viewport width</label>
+        <select id="visualViewport"><option value="1440">Desktop · 1440 px</option><option value="390">Mobile · 390 px</option></select>
+        <label for="visualBaseline">Original source PNG screenshot (max 1.5 MB, remains local)</label>
+        <input id="visualBaseline" type="file" accept="image/png,.png">
+        <button class="secondary" id="reviewVisual" type="button">Compare source and destination</button>
+        <p class="fine">Only visual-review.json metrics are added to the export. Neither the uploaded source screenshot nor the heatmap is packaged. Install optional requirements-visual.txt for comparison.</p>
+        <img id="visualHeatmap" alt="Visual difference heatmap with changed pixels highlighted red and unmatched page height highlighted amber" style="display:none;width:100%;height:auto;max-width:100%;" />
+        <p class="fine">Changed pixels are ranked by overlap with generated CIR components; this does not identify the original CSS cause.</p>
+        <div id="visualComponentSummary" class="fine" aria-live="polite"></div>
+        <pre id="visualJson" aria-label="Visual comparison review metrics"></pre>
+      </div><div id="behaviorPanel" class="tab-panel" hidden><div class="data-head">Source evidence, approved interactions, and target contract checks</div><p class="fine">Structural headings are candidates only. A successful target check does not establish original SharePoint behavior or visual fidelity.</p><pre id="behaviorJson"></pre></div><div id="mappingPanel" class="tab-panel" hidden><div class="data-head">Per-control target mappings and rewrites</div><pre id="mappingJson"></pre></div>
+      <p class="fine disclaimer">Visual fidelity is not verified: public samples do not provide a matched original page screenshot and computed CSS. Unsupported controls remain flagged for review.</p>
+    </section>
+    <div id="notice" role="status" aria-live="polite" class="notice" hidden></div>
+  </main>
+</div>
+</body>
+</html>

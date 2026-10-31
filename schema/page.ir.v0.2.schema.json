@@ -1,0 +1,291 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AncilBenny/SP_Migration_PoC/blob/mvp/01-migration-studio/schema/page.ir.v0.2.schema.json",
+  "title": "Migration Studio \u2014 canonical page IR v0.2.0",
+  "description": "Portable page content and diagnostics, not a Microsoft Graph/SharePoint API schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "source",
+    "page",
+    "tree",
+    "assets",
+    "diagnostics"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.2.0"
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "platform",
+        "pageModel",
+        "url",
+        "capturedAt",
+        "captureMethod",
+        "evidenceConfidence"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "platform": {
+          "type": "string"
+        },
+        "pageModel": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "capturedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "captureMethod": {
+          "type": "string"
+        },
+        "evidenceConfidence": {
+          "enum": [
+            "api",
+            "rendered",
+            "heuristic",
+            "synthetic"
+          ]
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "required": [
+        "id",
+        "title"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object"
+        }
+      }
+    },
+    "tree": {
+      "$ref": "#/$defs/node"
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/asset"
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/diagnostic"
+      }
+    },
+    "extensions": {
+      "type": "object"
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "kind": {
+          "enum": [
+            "page",
+            "section",
+            "columns",
+            "column",
+            "hero",
+            "richText",
+            "image",
+            "linkList",
+            "unknown"
+          ]
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "content": {
+          "type": "object"
+        },
+        "props": {
+          "type": "object"
+        },
+        "layout": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "widthFraction": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1
+            },
+            "columnCount": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "alignment": {
+              "type": "string"
+            },
+            "breakpointHints": {
+              "type": "object"
+            },
+            "gapToken": {
+              "type": "string"
+            },
+            "containerToken": {
+              "type": "string"
+            }
+          }
+        },
+        "sourceRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            },
+            "webPartId": {
+              "type": "string"
+            },
+            "webPartType": {
+              "type": "string"
+            },
+            "domSelector": {
+              "type": "string"
+            },
+            "evidence": {
+              "enum": [
+                "api",
+                "rendered",
+                "heuristic",
+                "synthetic"
+              ]
+            },
+            "capturePointer": {
+              "type": "string"
+            }
+          }
+        },
+        "fidelity": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "exact",
+                "approximate",
+                "unsupported",
+                "unverified"
+              ]
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "originalUrl",
+        "resolvedUrl",
+        "status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "originalUrl": {
+          "type": "string"
+        },
+        "resolvedUrl": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "resolved",
+            "external",
+            "missing",
+            "unsupported"
+          ]
+        },
+        "altText": {
+          "type": "string"
+        }
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": [
+        "severity",
+        "code"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ]
+        },
+        "code": {
+          "type": "string"
+        },
+        "nodeId": {
+          "type": "string"
+        },
+        "sourcePath": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

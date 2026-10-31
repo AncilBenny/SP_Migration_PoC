@@ -1,0 +1,37 @@
+{
+  "_provenance": "Self-authored fixture adapted to Microsoft Graph v1.0 driveItem response structure. NOT a real CDPH tenant export, not an authorized token or endpoint.",
+  "value": [
+    {
+      "id": "graph-png-example-01",
+      "name": "sample.png",
+      "webUrl": "https://www.cdph.ca.gov/images/sample.png",
+      "size": 11,
+      "eTag": "\"synthetic-etag-1\"",
+      "file": {"mimeType": "image/png"},
+      "parentReference": {"driveId": "graph-images-drive", "siteId": "example.sharepoint.com,site-collection,web"},
+      "sharepointIds": {"listId": "11111111-1111-1111-1111-111111111111", "listItemId": "42"},
+      "@microsoft.graph.downloadUrl": "https://some-cdn.invalid/temporary?token=DO_NOT_EXPORT_ME"
+    },
+    {
+      "id": "graph-jpg-example-02",
+      "name": "promo.jpg",
+      "webUrl": "https://www.cdph.ca.gov/images/promo.jpg",
+      "file": {"mimeType": "image/jpeg"},
+      "parentReference": {"driveId": "graph-images-drive"}
+    },
+    {
+      "id": "graph-pdf-example-03",
+      "name": "report.pdf",
+      "webUrl": "https://www.cdph.ca.gov/records/report.pdf",
+      "file": {"mimeType": "application/pdf"},
+      "parentReference": {"driveId": "graph-documents-drive"}
+    },
+    {
+      "id": "example-folder",
+      "name": "2026",
+      "webUrl": "https://www.cdph.ca.gov/images/2026",
+      "folder": {"childCount": 1},
+      "parentReference": {"driveId": "graph-images-drive"}
+    }
+  ]
+}

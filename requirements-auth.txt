@@ -1,0 +1,2 @@
+# Optional, for graph-stage --auth-mode entra-delegated; CI tests inject a fake MSAL client
+msal>=1.35,<2

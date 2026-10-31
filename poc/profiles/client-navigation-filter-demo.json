@@ -1,0 +1,53 @@
+{
+  "version": "1.0",
+  "id": "client-navigation-filter-demo",
+  "components": {
+    "hero": "pageHeader",
+    "richText": "contentBody",
+    "image": "media",
+    "linkList": "resourceCards",
+    "unknown": "reviewNote"
+  },
+  "colors": {
+    "primary": "#263e52",
+    "background": "#f2f4f5",
+    "surface": "#ffffff",
+    "text": "#24323d",
+    "link": "#176a87"
+  },
+  "layout": {
+    "maxWidthPx": 1080,
+    "gapPx": 28
+  },
+  "font": "system",
+  "labels": {
+    "resourcesHeading": "Useful resources"
+  },
+  "urlMappings": [
+    {
+      "sourcePrefix": "https://example.org/sites/demo/SitePages/",
+      "targetPrefix": "/knowledge/"
+    },
+    {
+      "sourcePrefix": "https://example.org/sites/demo/",
+      "targetPrefix": "/resources/"
+    }
+  ],
+  "assetDirectory": "media",
+  "behaviorMappings": [
+    {
+      "nodeId": "intro-text",
+      "interaction": "toc",
+      "headingLevel": 2
+    },
+    {
+      "nodeId": "feature-tabs",
+      "interaction": "tabs",
+      "headingLevel": 2
+    },
+    {
+      "nodeId": "links-part",
+      "interaction": "filterLinks"
+    }
+  ]
+}

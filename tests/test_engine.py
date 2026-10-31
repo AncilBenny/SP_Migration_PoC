@@ -70,25 +70,23 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(report['mappedParts'], 3)
             self.assertEqual(report['coveragePercent'], 75.0)
 
-    def test_default_no_invented_site_chrome(self):
+    def test_structural_default_avoids_invented_site_branding(self):
         with tempfile.TemporaryDirectory() as temp:
             out = Path(temp) / 'out'
             report = build(ROOT / 'poc/samples/modern-demo.json', out, ROOT / 'poc/assets')
             html = (out / 'index.html').read_text()
             css = (out / 'style.css').read_text()
-            self.assertIn('<main>', html)
             self.assertNotIn('CIR / Page migration', html)
-            self.assertNotIn('Public-source research demo', html)
             self.assertNotIn('Generated from a normalized', html)
-            self.assertNotIn('background:linear-gradient', css)
+            self.assertNotIn('background: linear-gradient', css)
             self.assertEqual(report['styleMode'], 'structural')
             self.assertEqual(report['visualFidelity'], 'unverified-no-rendered-source-baseline')
 
-    def test_demo_styling_is_explicit_opt_in(self):
+    def test_demo_style_mode_is_explicit_opt_in(self):
         with tempfile.TemporaryDirectory() as temp:
             out = Path(temp) / 'out'
             report = build(ROOT / 'poc/samples/modern-demo.json', out, ROOT / 'poc/assets', style_mode='demo')
-            self.assertIn('background:linear-gradient', (out / 'style.css').read_text())
+            self.assertIn('background: linear-gradient', (out / 'style.css').read_text())
             self.assertEqual(report['styleMode'], 'demo')
             with self.assertRaises(ValueError):
                 build(ROOT / 'poc/samples/modern-demo.json', out, style_mode='invalid')

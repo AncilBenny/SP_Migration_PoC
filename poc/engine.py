@@ -12,91 +12,10 @@ import json
 from pathlib import Path
 import re
 import shutil
-from urllib.parse import urljoin, urlsplit
+from .richtext import ALLOWED_TAGS, VOID_TAGS, safe_url, sanitize_html, sanitize_with_audit
 
 IMAGE_ID = "d1d91016-032f-456d-98a4-721247c305e8"
 QUICKLINKS_ID = "c70391ea-0b10-4ee9-b2b4-006d3fcad0cd"
-ALLOWED_TAGS = {"p", "h1", "h2", "h3", "h4", "h5", "h6", "strong", "b", "em", "i", "ul", "ol", "li", "a", "br", "blockquote", "code", "pre", "table", "thead", "tbody", "tr", "td", "th"}
-VOID_TAGS = {"br"}
-
-
-def safe_url(value: str, base_url: str = "") -> str:
-    """Reject executable/opaque schemes; resolve ordinary SharePoint-relative URLs."""
-    if not isinstance(value, str) or not value or any(ord(ch) < 32 for ch in value):
-        return ""
-    value = value.strip()
-    parts = urlsplit(value)
-    if parts.scheme and parts.scheme.lower() not in {"https", "http", "mailto"}:
-        return ""
-    if value.startswith("//"):
-        return ""
-    if parts.scheme:
-        return value
-    if value.startswith("#"):
-        return value
-    if not base_url:
-        return value
-    if not urlsplit(base_url).scheme in {"http", "https"}:
-        return ""
-    return urljoin(base_url, value)
-
-
-class CleanHTML(HTMLParser):
-    """Small allow-list HTML serializer; never echo executable markup."""
-    def __init__(self, base_url: str = ""):
-        super().__init__(convert_charrefs=True)
-        self.base_url = base_url
-        self.output: list[str] = []
-        self.stack: list[str] = []
-        self.blocked = 0
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]):
-        if tag in {"script", "style", "iframe", "object", "svg", "form"}:
-            self.blocked += 1
-            return
-        if self.blocked or tag not in ALLOWED_TAGS:
-            return
-        attrs = dict(attrs)
-        extra = ""
-        if tag == "a":
-            href = safe_url(attrs.get("href", ""), self.base_url)
-            if href:
-                extra = f' href="{escape(href, quote=True)}"'
-        self.output.append(f"<{tag}{extra}>")
-        if tag not in VOID_TAGS:
-            self.stack.append(tag)
-
-    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]):
-        self.handle_starttag(tag, attrs)
-
-    def handle_endtag(self, tag: str):
-        if tag in {"script", "style", "iframe", "object", "svg", "form"}:
-            if self.blocked:
-                self.blocked -= 1
-            return
-        if self.blocked or tag not in self.stack:
-            return
-        while self.stack:
-            top = self.stack.pop()
-            self.output.append(f"</{top}>")
-            if top == tag:
-                break
-
-    def handle_data(self, data: str):
-        if not self.blocked:
-            self.output.append(escape(data))
-
-    def get_html(self) -> str:
-        while self.stack:
-            self.output.append(f"</{self.stack.pop()}>")
-        return "".join(self.output)
-
-
-def sanitize_html(raw: str, base_url: str = "") -> str:
-    parser = CleanHTML(base_url)
-    parser.feed(raw if isinstance(raw, str) else "")
-    parser.close()
-    return parser.get_html()
 
 
 def processed_value(data: dict, category: str, key: str) -> str:
@@ -125,6 +44,24 @@ def normalize(page: dict, *, asset_map: dict[str, str] | None = None) -> dict:
     diagnostics: list[dict] = []
     counts = Counter()
     page_id = str(page.get("id") or "page")
+    evidence = str(page.get("_captureConfidence") or "synthetic")
+    if evidence not in {"api", "rendered", "heuristic", "synthetic"}:
+        evidence = "heuristic"
+    used_part_ids: set[str] = set()
+
+    def part_list(parent: dict, path: str) -> list[dict]:
+        """Prevent silently dropping controls when an expanded relationship is absent."""
+        if "webparts" not in parent:
+            diagnostics.append({"severity": "warning", "code": "WEBPART_RELATIONSHIP_NOT_EXPANDED",
+                                "sourcePath": path, "message": "No expanded webparts relationship; completeness unknown"})
+            return []
+        parts = parent["webparts"]
+        if not isinstance(parts, list):
+            raise ValueError("Expected Graph webparts relationship array at " + path)
+        if any(not isinstance(part, dict) for part in parts):
+            raise ValueError("Non-object web part in " + path)
+        return parts
+
 
     def asset(original: str, id: str, alt: str) -> str:
         resolved = safe_url(original, base_url)
@@ -141,14 +78,46 @@ def normalize(page: dict, *, asset_map: dict[str, str] | None = None) -> dict:
 
     def content_part(part: dict, index: int) -> dict:
         part_id = str(part.get("id") or f"part-{index}")
-        source_ref = {"webPartId": part_id, "evidence": "synthetic"}
+        source_ref = {"webPartId": part_id, "evidence": evidence}
+        if part_id in used_part_ids:
+            diagnostics.append({"severity": "error", "code": "DUPLICATE_WEBPART_ID",
+                                "nodeId": part_id, "message": "Non-unique source web part ID"})
+        used_part_ids.add(part_id)
+        if part.get("containerTextWebPartId"):
+            source_ref["path"] = "inline-of:" + str(part["containerTextWebPartId"])
+            diagnostics.append({"severity": "warning", "code": "INLINE_WEBPART_PLACEMENT_UNVERIFIED",
+                                "nodeId": part_id, "message": "Inline web part is linked to a parent text part; in-text positioning requires review"})
         if part.get("_capturePointer"):
             source_ref["capturePointer"] = str(part["_capturePointer"])
         odata = str(part.get("@odata.type", "")).lower().lstrip("#")
         if odata.endswith("textwebpart") or ("innerHtml" in part and not part.get("webPartType")):
-            html = sanitize_html(part.get("innerHtml", ""), base_url)
+            raw_html = part.get("innerHtml", "")
+            clean = sanitize_with_audit(raw_html, base_url, compile_styles=True)
+            from .style_compiler import audit_source_code
+            source_code = audit_source_code(raw_html)
+            html = clean.html
+            if clean.kept_inline_images:
+                diagnostics.append({"severity": "warning", "code": "INLINE_IMAGE_ASSET_REVIEW",
+                                    "nodeId": part_id, "message": "Inline image HTML preserved, but original asset download and rights require review",
+                                    "details": {"imageCount": clean.kept_inline_images}})
+            if clean.changed_for_safety:
+                diagnostics.append({"severity": "warning", "code": "RICH_TEXT_CLEANUP_REVIEW",
+                                    "nodeId": part_id, "message": "Rich text sanitization removed unsupported markup, attributes or URLs",
+                                    "details": {"removedElements": clean.removed_elements,
+                                                "removedAttributes": clean.removed_attributes,
+                                                "rejectedUrls": clean.rejected_urls}})
+            if clean.dropped_style_properties:
+                diagnostics.append({"severity": "warning", "code": "SOURCE_CSS_DECLARATIONS_REVIEW",
+                                    "nodeId": part_id, "message": "Unsupported or unsafe source formatting was not compiled",
+                                    "details": {"properties": sorted(set(clean.dropped_style_properties))}})
+            if source_code:
+                diagnostics.append({"severity": "warning", "code": "SOURCE_SCRIPTS_STYLES_REVIEW",
+                                    "nodeId": part_id, "message": "Source scripts, handlers or stylesheets require manual behavior/visual mapping",
+                                    "details": {"inventory": source_code}})
             counts["richText"] += 1
-            return {"id": part_id, "kind": "richText", "props": {"safeHtml": html}, "sourceRef": source_ref, "fidelity": {"status": "approximate", "reason": "Safe HTML subset; styling and inline controls are not reproduced"}}
+            return {"id": part_id, "kind": "richText", "props": {"safeHtml": html, "styleRules": list(clean.style_rules),
+                    "sourceCodeAudit": source_code}, "sourceRef": source_ref,
+                    "fidelity": {"status": "approximate", "reason": "Safe declared formatting compiled; full CSS cascade and dynamic behavior unverified"}}
 
         part_type = str(part.get("webPartType") or "").lower()
         source_ref["webPartType"] = part_type
@@ -158,12 +127,17 @@ def normalize(page: dict, *, asset_map: dict[str, str] | None = None) -> dict:
             image_url = processed_value(data, "imageSources", "imageSource") or props.get("imageSource", "") or props.get("src", "")
             alt = str(props.get("altText") or "")
             src = asset(str(image_url), "asset-" + part_id, alt)
-            counts["image"] += 1
             if not src:
                 return {"id": part_id, "kind": "unknown", "sourceRef": source_ref, "props": {"reason": "Image source missing"}, "fidelity": {"status": "unsupported", "reason": "Image URL missing"}}
+            counts["image"] += 1
             if not alt:
                 diagnostics.append({"severity": "warning", "code": "MISSING_ALT_TEXT", "nodeId": part_id, "message": "Image has no alt text; review whether it is decorative"})
-            return {"id": part_id, "kind": "image", "content": {"assetId": "asset-" + part_id, "altText": alt, "caption": str(props.get("captionText") or "")}, "props": {"src": src}, "sourceRef": source_ref, "fidelity": {"status": "approximate", "reason": "Source cropping and rendering options not reproduced"}}
+            image_props = {"src": src}
+            for src_key, dest_key in (("imgWidth", "sourceWidthPx"), ("imgHeight", "sourceHeightPx"),
+                                      ("alignment", "sourceAlignment")):
+                if src_key in props and isinstance(props[src_key], (int, float, str)):
+                    image_props[dest_key] = props[src_key]
+            return {"id": part_id, "kind": "image", "content": {"assetId": "asset-" + part_id, "altText": alt, "caption": str(props.get("captionText") or "")}, "props": image_props, "sourceRef": source_ref, "fidelity": {"status": "approximate", "reason": "Source cropping and rendering options not reproduced"}}
         if part_type == QUICKLINKS_ID:
             links = []
             for item in props.get("items", []):
@@ -183,27 +157,81 @@ def normalize(page: dict, *, asset_map: dict[str, str] | None = None) -> dict:
     tree = {"id": page_id + "-root", "kind": "page", "children": []}
     title_area = page.get("titleArea") or {}
     if title_area:
-        tree["children"].append({"id": "title-area", "kind": "hero", "props": {"eyebrow": str(title_area.get("textAboveTitle") or ""), "variant": str(title_area.get("layout") or "plain")}, "content": {"text": str(page.get("title") or title_area.get("title") or "Untitled")}, "fidelity": {"status": "approximate", "reason": "Title area layout simplified"}})
-    for section_index, section in enumerate(page["canvasLayout"].get("horizontalSections", [])):
+        visible_eyebrow = title_area.get("showTextBlockAboveTitle") is not False
+        hero_props = {
+            "eyebrow": str(title_area.get("textAboveTitle") or "") if visible_eyebrow else "",
+            "sourceTextAboveTitle": str(title_area.get("textAboveTitle") or ""),
+            "variant": str(title_area.get("layout") or "plain"),
+            "alignment": str(title_area.get("textAlignment") or "left"),
+            "gradientEnabled": bool(title_area.get("enableGradientEffect") or False),
+            "showAuthor": title_area.get("showAuthor"),
+            "showPublishedDate": title_area.get("showPublishedDate"),
+        }
+        if title_area.get("imageWebUrl"):
+            hero_props["imageUrl"] = asset(str(title_area["imageWebUrl"]), "asset-title-area", str(title_area.get("alternativeText") or ""))
+            hero_props["imageAlt"] = str(title_area.get("alternativeText") or "")
+        tree["children"].append({"id": "title-area", "kind": "hero", "props": hero_props,
+                                 "content": {"text": str(page.get("title") or title_area.get("title") or "Untitled")},
+                                 "fidelity": {"status": "approximate", "reason": "Title area appearance and author/date rendering need source visual evidence"}})
+
+    horizontal = page["canvasLayout"].get("horizontalSections") or []
+    if not isinstance(horizontal, list):
+        raise ValueError("Expected horizontalSections array")
+    for section_index, section in enumerate(horizontal):
+        if not isinstance(section, dict):
+            raise ValueError("Expected horizontalSection object")
         cols = section.get("columns") or []
-        total_width = sum(int(c.get("width") or 0) for c in cols)
+        if not isinstance(cols, list):
+            raise ValueError("Expected horizontalSection columns array")
+        spans = []
+        for col in cols:
+            if not isinstance(col, dict) or type(col.get("width")) is not int or not 1 <= col["width"] <= 12:
+                raise ValueError("Modern Graph column width must be an integer 1..12")
+            spans.append(col["width"])
+        total_width = sum(spans)
         if total_width != 12:
-            diagnostics.append({"severity": "warning", "code": "INVALID_GRID", "message": f"Section {section_index + 1} uses {total_width} of 12 grid units"})
-        section_node = {"id": str(section.get("id") or f"section-{section_index}"), "kind": "section", "order": section_index, "props": {"emphasis": str(section.get("emphasis") or "none")}, "children": []}
+            diagnostics.append({"severity": "warning", "code": "INVALID_GRID",
+                                "message": f"Section {section_index + 1} uses {total_width} of 12 grid units"})
+        section_node = {"id": str(section.get("id") or f"section-{section_index}"),
+                        "kind": "section", "order": section_index,
+                        "props": {"emphasis": str(section.get("emphasis") or "none"),
+                                  "sourceLayout": str(section.get("layout") or "unknown")}, "children": []}
         columns = {"id": f"columns-{section_index}", "kind": "columns", "children": []}
         for ci, column in enumerate(cols):
-            span = int(column.get("width") or 12)
-            column_node = {"id": f"col-{section_index}-{ci}", "kind": "column", "order": ci, "layout": {"widthFraction": min(1, max(1, span) / 12)}, "children": []}
-            for pi, part in enumerate(column.get("webparts") or []):
+            span = spans[ci]
+            column_node = {"id": f"col-{section_index}-{ci}", "kind": "column", "order": ci,
+                           "layout": {"widthFraction": span / 12, "breakpointHints": {"sourceGridSpan": span}}, "children": []}
+            parts = part_list(column, f"canvasLayout.horizontalSections[{section_index}].columns[{ci}]")
+            for pi, part in enumerate(parts):
                 column_node["children"].append(content_part(part, pi))
             columns["children"].append(column_node)
         section_node["children"].append(columns)
         tree["children"].append(section_node)
-    if page["canvasLayout"].get("verticalSection"):
-        diagnostics.append({"severity": "warning", "code": "UNSUPPORTED_VERTICAL_SECTION", "message": "Right-side vertical section preserved only as a warning in this PoC"})
-    if not page["canvasLayout"].get("horizontalSections"):
-        diagnostics.append({"severity": "warning", "code": "NO_HORIZONTAL_SECTIONS", "message": "No horizontal sections available; this does not establish an empty source page"})
-    return {"schemaVersion": "0.1.0", "source": {"platform": "sharepoint", "pageModel": "modern", "url": base_url or "https://example.org/unknown", "capturedAt": "2026-10-28T00:00:00Z", "captureMethod": str(page.get("_captureMethod") or "manual-fixture"), "evidenceConfidence": str(page.get("_captureConfidence") or "synthetic")}, "page": {"id": page_id, "title": str(page.get("title") or "Untitled"), "description": str(page.get("description") or "")}, "tree": tree, "assets": assets, "diagnostics": diagnostics, "extensions": {"demo": {"counts": dict(counts), "note": "Adapted public documentation fixture; not a live SharePoint export"}}}
+
+    vertical = page["canvasLayout"].get("verticalSection")
+    if vertical is not None:
+        if not isinstance(vertical, dict):
+            raise ValueError("Expected Graph verticalSection object")
+        # Preserve the source's separate sidebar region; its exact responsive
+        # placement is an output/layout concern and remains explicitly unverified.
+        sidebar_parts = part_list(vertical, "canvasLayout.verticalSection")
+        sidebar = {"id": str(vertical.get("id") or "vertical-section"), "kind": "section",
+                   "order": len(horizontal), "props": {"sourceLayout": "verticalSection",
+                   "placement": "sidebar", "emphasis": str(vertical.get("emphasis") or "none")},
+                   "children": [{"id": "vertical-columns", "kind": "columns", "children": [
+                       {"id": "vertical-column", "kind": "column", "order": 0,
+                        "layout": {"widthFraction": 1, "breakpointHints": {"sourceRegion": "verticalSection"}},
+                        "children": [content_part(part, pi) for pi, part in enumerate(sidebar_parts)]}]}]}
+        tree["children"].append(sidebar)
+        if sidebar_parts:
+            diagnostics.append({"severity": "warning", "code": "VERTICAL_LAYOUT_APPROXIMATE",
+                                "sourcePath": "canvasLayout.verticalSection",
+                                "message": "Sidebar content preserved; its source page placement and responsive behavior require visual verification"})
+    if not horizontal and vertical is None:
+        diagnostics.append({"severity": "warning", "code": "NO_SECTIONS",
+                            "message": "No sections available; this does not establish an empty source page"})
+    ir = {"schemaVersion": "0.2.0", "source": {"platform": "sharepoint", "pageModel": "modern", "url": base_url or "https://example.org/unknown", "capturedAt": "2026-10-28T00:00:00Z", "captureMethod": str(page.get("_captureMethod") or "manual-fixture"), "evidenceConfidence": str(page.get("_captureConfidence") or "synthetic")}, "page": {"id": page_id, "title": str(page.get("title") or "Untitled"), "description": str(page.get("description") or "")}, "tree": tree, "assets": assets, "diagnostics": diagnostics, "extensions": {"demo": {"counts": dict(counts), "note": "Adapted public documentation fixture; not a live SharePoint export"}}}
+    return ir
 
 
 def render_node(node: dict) -> str:
@@ -214,8 +242,15 @@ def render_node(node: dict) -> str:
     marker = f' data-ir-id="{escape(str(node.get("id", "")), quote=True)}"'
     if kind == "hero":
         eyebrow = escape(node.get("props", {}).get("eyebrow", ""))
-        return f'<header class="hero"{marker}><div class="wrap"><p class="eyebrow">{eyebrow}</p><h1>{escape(node.get("content", {}).get("text", ""))}</h1></div></header>'
+        props = node.get("props") or {}
+        image_url = props.get("imageUrl") or ""
+        image = f'<img class="hero-image" src="{escape(str(image_url), quote=True)}" alt="{escape(str(props.get("imageAlt") or ""), quote=True)}">' if image_url else ""
+        eyebrow_html = f'<p class="eyebrow">{eyebrow}</p>' if eyebrow else ""
+        return f'<header class="hero"{marker}><div class="wrap">{image}{eyebrow_html}<h1>{escape(node.get("content", {}).get("text", ""))}</h1></div></header>'
     if kind == "section":
+        placement = (node.get("props") or {}).get("placement")
+        if placement == "sidebar":
+            return f'<aside class="section vertical-section" aria-label="Related page content"><div class="wrap">{children}</div></aside>'
         return f'<section class="section"><div class="wrap">{children}</div></section>'
     if kind == "columns":
         return f'<div class="columns">{children}</div>'
@@ -223,7 +258,7 @@ def render_node(node: dict) -> str:
         fraction = float(node.get("layout", {}).get("widthFraction", 1))
         return f'<div class="column" style="--share:{max(0.01,min(1,fraction)):.6f}">{children}</div>'
     if kind == "richText":
-        return f'<div class="rich-text"{marker}>{node.get("props", {}).get("safeHtml", "")}</div>'
+        return f'<div class="rich-text"{marker}>{sanitize_html(node.get("props", {}).get("safeHtml", ""))}</div>'
     if kind == "image":
         c = node.get("content") or {}
         src = escape(node.get("props", {}).get("src", ""), quote=True)
@@ -253,6 +288,8 @@ def build(source: Path, out: Path, assets_dir: Path | None = None, *, style_mode
         doc, canvas_diagnostics = decode_modern_canvas(doc)
     ir = normalize(doc, asset_map=mappings)
     ir["diagnostics"].extend(canvas_diagnostics)
+    from .contracts import validate_ir
+    validate_ir(ir)
     from .validation import source_to_ir, ir_to_html
     from hashlib import sha256
     source_audit = source_to_ir(doc, ir)
@@ -273,8 +310,17 @@ def build(source: Path, out: Path, assets_dir: Path | None = None, *, style_mode
             f'<meta name="viewport" content="width=device-width,initial-scale=1">'
             f'<meta name="description" content="{description}"><title>{title}</title>'
             f'<link rel="stylesheet" href="style.css"></head><body><main>{body}</main></body></html>')
+    from .style_compiler import compile_stylesheet, presentation_report
+    source_styles, style_summary = compile_stylesheet(ir, 'source-safe')
+    if style_summary['emittedRules']:
+        html = html.replace('</head>', '<link rel="stylesheet" href="source-styles.css"></head>')
+        (out / 'source-styles.css').write_text(source_styles, encoding='utf-8')
+    (out / 'presentation-report.json').write_text(json.dumps(presentation_report(ir, style_summary), indent=2) + '\n', encoding='utf-8')
     (out / "index.html").write_text(html, encoding="utf-8")
-    (out / "style.css").write_text(STRUCTURAL_CSS if style_mode == "structural" else DEMO_CSS, encoding="utf-8")
+    from .style_compiler import format_generated_css
+    formatted_css = format_generated_css((STRUCTURAL_CSS if style_mode == 'structural' else DEMO_CSS) +
+                                         '.hero-image{display:block;max-width:100%;height:auto}.vertical-section{width:100%}')
+    (out / 'style.css').write_text(formatted_css, encoding='utf-8')
     ir_text = json.dumps(ir, indent=2) + "\n"
     (out / "page.ir.json").write_text(ir_text, encoding="utf-8")
     counts = Counter()
@@ -283,11 +329,32 @@ def build(source: Path, out: Path, assets_dir: Path | None = None, *, style_mode
         for child in n.get("children", []):
             walk(child)
     walk(ir["tree"])
-    total_webparts = sum(len(col.get("webparts") or []) for section in doc["canvasLayout"].get("horizontalSections", []) for col in section.get("columns") or [])
+    total_webparts = (sum(len(col.get("webparts") or []) for section in doc["canvasLayout"].get("horizontalSections", []) for col in section.get("columns") or [])
+                      + len((doc["canvasLayout"].get("verticalSection") or {}).get("webparts") or []))
     supported = sum(counts[k] for k in ("richText", "image", "linkList"))
+    from .dependencies import audit_export
+    from .acquisition import plan_acquisition
+    acquisition_plan = plan_acquisition(ir)
+    (out / 'acquisition-plan.json').write_text(json.dumps(acquisition_plan, indent=2) + '\n', encoding='utf-8')
+    output_files = {'index.html': html.encode('utf-8'), 'style.css': formatted_css.encode('utf-8')}
+    if style_summary['emittedRules']:
+        output_files['source-styles.css'] = source_styles.encode('utf-8')
+    for asset_record in ir['assets']:
+        path = asset_record.get('resolvedUrl', '')
+        if path.startswith('assets/') and (out / path).is_file():
+            output_files[path] = (out / path).read_bytes()
+    dependency_audit = audit_export(ir, html, output_files, mode='structural')
+    if dependency_audit['sourceSensitiveReferenceCount'] or any(dep['status'] == 'blocked' and dep['reason'].startswith('Preauthenticated')
+           for dep in dependency_audit['dependencies']):
+        raise ValueError('PREAUTHENTICATED_REFERENCE_BLOCKED: remove temporary credential URLs before export')
+    (out / 'dependency-manifest.json').write_text(json.dumps(dependency_audit, indent=2) + '\n', encoding='utf-8')
     report = {"source": str(source), "status": "demo-generated", "styleMode": style_mode, "visualFidelity": "unverified-no-rendered-source-baseline", "webPartsFound": total_webparts, "mappedParts": supported, "unmappedParts": counts["unknown"], "coveragePercent": round(100 * supported / total_webparts, 1) if total_webparts else 100.0, "components": dict(counts), "assets": len(ir["assets"]), "warnings": ir["diagnostics"], "limitations": ["Public documentation-adapted fixture, not an authenticated tenant extraction", "Modern Graph canvas subset only", "Source screenshots/CSS unavailable; generated styling is not a visual replica", "No dynamic behavior migration"]}
     target_audit = ir_to_html(ir, html, {}, out)
-    quality = {"version": "1.0", "irSha256": sha256(ir_text.encode("utf-8")).hexdigest(),
+    if dependency_audit['blocked']:
+        target_audit['passed'] = False
+        target_audit.setdefault('items', []).append({'nodeId': 'dependency-manifest', 'kind': 'dependency', 'status': 'lost', 'reason': 'Missing or unsafe dependencies'})
+        target_audit['summary']['lost'] = target_audit['summary'].get('lost', 0) + 1
+    quality = {"version": "1.0", "dependencyAudit": dependency_audit['summary'], "irSha256": sha256(ir_text.encode("utf-8")).hexdigest(),
                "sourceToIr": source_audit, "irToHtml": target_audit,
                "passed": source_audit["passed"] and target_audit["passed"],
                "visualFidelity": "unverified-no-matched-source-baseline"}

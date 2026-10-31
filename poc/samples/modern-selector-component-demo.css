@@ -1,0 +1,10 @@
+/* Synthetic selector example, NOT scraped from a real SharePoint tenant. */
+.ms-rtestate-field > h2 { color:#345678; font-weight:700; }
+.ms-rtestate-field > p { margin-bottom:1rem; line-height:1.5; }
+@media (max-width: 700px) {
+  .ms-wpheader h2 { font-size:22px; }
+}
+.ms-rtestate-field .resource-link { color:#195d88; }
+/* Never transfer runtime selectors or unsafe declarations. */
+.ms-rtestate-field button:hover { behavior:url(legacy.htc); }
+@import url(https://untrusted.invalid/sharepoint.css);
