@@ -197,7 +197,7 @@ Install compiler dependency: `python -m pip install -r requirements-dev.txt`. Th
 In addition to compiling safe **inline** formatting, the product now accepts **explicitly supplied external stylesheet files** for offline analysis. `css-workbench` identifies simple semantic CSS candidates, limited responsive media rules, safe properties and color tokens; it reports SharePoint-specific selectors, fonts, imports, scripts and complex conditions for review. It never fetches source CSS URLs or applies the proposed output automatically.
 
 ```powershell
-python -m poc css-workbench --css poc/samples/public-stylesheet-review-demo.css --html showcase/client-design/index.html --out css-review
+python -m poc css-workbench --css poc/samples/public-stylesheet-review-demo.css --html demo-client/index.html --out css-review
 ```
 
 Open `css-review/css-review.json` (decisions) and `css-review/reviewed-candidates.css` (reviewable scoped CSS). Migration Studio's **Styles & Scripts** tab includes a CSS upload/review workflow, adding these files to the export without modifying the actual page.
@@ -218,7 +218,9 @@ Outputs `desktop.png`, `mobile.png`, `browser-audit.json`. This is **not** a sou
 Stylesheets from actual SharePoint sites can contain runtime-only selectors that do not make sense on the destination website. The CSS workbench now supports a **versioned, explicit selector-to-component mapping** that produces candidate rules using only renderer-owned target classes. It does not mutate the generic CIR, auto-apply CSS, run SharePoint scripts, or fetch stylesheets from URLs.
 
 ```powershell
-python -m poc css-workbench --css poc/samples/modern-selector-component-demo.css --html showcase/client-design/index.html --selector-map poc/profiles/modern-selector-component-map.json --out css-component-review
+python -m poc build --input poc/samples/modern-demo.json --out demo
+python -m poc map --ir demo/page.ir.json --profile poc/profiles/client-example.json --out demo-client
+python -m poc css-workbench --css poc/samples/modern-selector-component-demo.css --html demo-client/index.html --selector-map poc/profiles/modern-selector-component-map.json --out css-component-review
 ```
 
 In the local Migration Studio, generate a client page and open **Styles & scripts**; upload a CSS file plus an optional reviewed mapping JSON file. The export includes review-only CSS, diagnostics and the mapping manifest. The example CSS/manifest is synthetic (not verified live SharePoint content).
