@@ -269,3 +269,9 @@ python -m poc visual-compare --source-png authorized-source-desktop.png --target
 ```
 
 See [Milestone 15 visual review contract and limits](docs/mvp/15-matched-visual-review.md). A baseline from a genuine source site must be **provided by an authorized reviewer**; generated sample screenshots cannot establish source fidelity.
+
+## MVP milestone 16: component-level visual diagnostics
+
+The optional visual review now ranks changed pixels that overlap **rendered CIR node bounds** and identifies destination component types and target-side computed style clues, while counting changed pixels outside those bounds separately. Chromium captures node rectangles using compiler-owned `data-ir-id` markers in offline static mode. This helps developers decide whether to inspect a mapped heading, resource card, image container, or page-level styling. It **does not infer source styles or identify root cause**.
+
+Run `python -m poc browser-audit` and then `python -m poc visual-compare` with `--browser-report browser-review/browser-audit.json` and optionally `--mapping-report demo-target/mapping-report.json`, or use Migration Studio's **Visual comparison** tab. The browser audit's screenshot hash must match the submitted target PNG before geometry is accepted. See [Milestone 16 notes](docs/mvp/16-component-level-visual-diagnostics.md) for a complete example and limitations.
