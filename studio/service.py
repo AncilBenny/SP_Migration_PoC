@@ -186,6 +186,10 @@ class ProjectStore:
             from poc.behavior_compiler import BEHAVIOR_JS
             files['behavior.js'] = BEHAVIOR_JS.encode('utf-8')
         files['presentation-report.json'] = (json.dumps(report['presentation'], indent=2) + '\n').encode('utf-8')
+        from poc.behavior_evidence import compare_destination_behavior
+        behavior_evidence = (report.get('behaviorEvidence') if mode == 'client' else
+                             compare_destination_behavior(project.ir, html, {}, {}))
+        files['behavior-evidence.json'] = (json.dumps(behavior_evidence, indent=2) + '\n').encode('utf-8')
         if report['presentation']['stylesheet']['emittedRules']:
             files['source-styles.css'] = source_css.encode('utf-8')
         for asset in project.ir.get('assets', []):
@@ -234,6 +238,7 @@ class ProjectStore:
             'visualFidelity': 'unverified-no-matched-source-screenshot',
             'presentation': report['presentation'],
             'behavior': report.get('behavior', {'compiled':[], 'sourceRuntimeCopied':False}),
+            'behaviorEvidence': behavior_evidence,
             'scope': 'Content, assets, safe authored CSS declarations, script inventory, explicit destination behavior mappings; no computed CSS or source-vs-target interaction comparison',
         }
         files['dependency-manifest.json'] = (json.dumps(dependency_audit, indent=2) + '\n').encode('utf-8')
