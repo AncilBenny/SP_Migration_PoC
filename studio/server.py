@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import base64
+import binascii
 import mimetypes
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
@@ -86,7 +88,7 @@ class StudioHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlsplit(self.path).path
-        if path not in {'/api/analyze', '/api/render', '/api/css-workbench'}:
+        if path not in {'/api/analyze', '/api/render', '/api/css-workbench', '/api/visual-review'}:
             return self.json_response(404, {'error': 'Not found'})
         if not self.headers.get('Content-Type', '').lower().startswith('application/json'):
             return self.json_response(415, {'error': 'Expected application/json'})
@@ -103,6 +105,16 @@ class StudioHandler(BaseHTTPRequestHandler):
                 if not isinstance(project_id, str) or not isinstance(css, str):
                     raise ValueError('Expected projectId and CSS text')
                 result = self.server.projects.review_stylesheet(project_id, req.get('mode', 'client'), css, selector_map=req.get('selectorMap'))
+            elif path == '/api/visual-review':
+                project_id=req.get('projectId')
+                raw=req.get('sourcePngBase64')
+                if not isinstance(project_id,str) or not isinstance(raw,str) or len(raw)>2_100_000:
+                    raise ValueError('VISUAL_UPLOAD_LIMIT: expected project ID and source PNG below 1.5 MB')
+                try:
+                    baseline=base64.b64decode(raw,validate=True)
+                except (ValueError,binascii.Error) as exc:
+                    raise ValueError('VISUAL_UPLOAD_INVALID: expected base64 PNG') from exc
+                result=self.server.projects.review_visual(project_id,req.get('mode','client'),baseline,req.get('viewportWidth'))
             elif path == '/api/analyze':
                 result = self.server.projects.analyze(sample_id=req.get('sampleId'), source=req.get('source'))
             else:
@@ -113,6 +125,8 @@ class StudioHandler(BaseHTTPRequestHandler):
             return self.json_response(200, result)
         except (ValueError, TypeError, json.JSONDecodeError) as exc:
             return self.json_response(400, {'error': str(exc)[:500]})
+        except RuntimeError as exc:
+            return self.json_response(503, {'error': str(exc)[:200]})
         except KeyError as exc:
             return self.json_response(404, {'error': str(exc)[:500]})
 
