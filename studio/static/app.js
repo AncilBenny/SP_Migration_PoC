@@ -45,13 +45,14 @@ async function analyze(){
     const pending=[r.ir.tree];
     while(pending.length){
       const node=pending.pop();
-      if(node.kind==='richText'){
-        const option=document.createElement('option');option.value=node.id;option.textContent='Rich-text node: '+node.id;
+      if(node.kind==='richText' || node.kind==='linkList'){
+        const option=document.createElement('option');option.value=node.id;option.textContent=(node.kind==='linkList'?'Quick Links: ':'Rich text: ')+node.id;option.dataset.kind=node.kind;
         choices.append(option);
       }
       for(const child of node.children||[])pending.push(child);
     }
     choices.value='';
+    syncBehaviorChoices();
     $('stageBadge').textContent='Source ready';$('projectTitle').textContent=r.label;
     $('metricNodes').textContent=r.nodeCount;$('metricWarnings').textContent=r.warningCount;
     $('metricPreserved').textContent=r.sourceCheck.summary?.preserved||0;
@@ -60,6 +61,16 @@ async function analyze(){
     notice('Source analyzed. Configure a target and generate the webpage.');
     await generate();
   }catch(e){notice(e.message,true);}finally{$('analyze').disabled=false;}
+}
+function syncBehaviorChoices(){
+  const kind=$('behaviorNode').selectedOptions[0]?.dataset.kind;
+  const select=$('behaviorType');
+  const previous=select.value;
+  const choices=kind==='linkList'
+    ? [['filterLinks','Searchable Quick Links (minimal JS)']]
+    : [['accordion','Native HTML accordion (no JS)'],['tabs','Accessible tab panels (minimal JS)'],['toc','On-page navigation (no JS)']];
+  select.replaceChildren(...choices.map(([value,label])=>new Option(label,value)));
+  select.value=choices.some(([value])=>value===previous)?previous:choices[0][0];
 }
 async function generate(){
   if(!state.projectId){return notice('Import source before generating',true);}
@@ -99,6 +110,7 @@ async function init(){
   });
   $('analyze').addEventListener('click',analyze);
   $('generate').addEventListener('click',generate);
+  $('behaviorNode').addEventListener('change',syncBehaviorChoices);
   $('rebuild').addEventListener('click',generate);
   $('mode').addEventListener('change',()=>{$('mappingControls').hidden=$('mode').value==='structural';});
   $('primary').addEventListener('input',()=>{$('colorLabel').textContent=$('primary').value;});
