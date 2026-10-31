@@ -92,9 +92,11 @@ class SelectorMappingTests(unittest.TestCase):
 
     def test_cli_review_mode(self):
         with TemporaryDirectory() as tmp:
+            html_file=Path(tmp)/'input.html'
+            html_file.write_text(HTML, encoding='utf-8')
             command=[sys.executable, '-m','poc','css-workbench',
                      '--css','poc/samples/modern-selector-component-demo.css',
-                     '--html','showcase/client-design/index.html',
+                     '--html',str(html_file),
                      '--selector-map','poc/profiles/modern-selector-component-map.json',
                      '--out',tmp]
             proc=subprocess.run(command,cwd=ROOT,text=True,capture_output=True)
