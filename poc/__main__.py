@@ -70,10 +70,16 @@ def main():
     stylesheet.add_argument('--css', type=Path, required=True, help='A locally supplied CSS file; no imports fetched')
     stylesheet.add_argument('--html', type=Path, help='Generated index.html for observed semantic tags')
     stylesheet.add_argument('--out', type=Path, default=Path('css-review'))
-    stylesheet.add_argument('--selector-map', type=Path, help='Reviewed JSON manifest: exact source selectors -> destination components')
+    stylesheet.add_argument('--selector-map', type=Path, help='Reviewed JSON manifest of exact source selectors -> destination components')
     browser = sub.add_parser('browser-audit', help='Optional offline Chromium screenshots + responsive checks; no source baseline')
     browser.add_argument('--html', type=Path, required=True)
     browser.add_argument('--out', type=Path, default=Path('browser-review'))
+    behavior = sub.add_parser('behavior-browser', help='Optional isolated browser check of generated destination interactions (no source parity)')
+    behavior.add_argument('--ir', type=Path, required=True)
+    behavior.add_argument('--html', type=Path, required=True)
+    behavior.add_argument('--profile', type=Path, required=True)
+    behavior.add_argument('--mapping-report', type=Path, required=True)
+    behavior.add_argument('--out', type=Path, default=Path('behavior-browser-report.json'))
     args = parser.parse_args()
     if args.command == 'build':
         result = build(args.input, args.out, Path(__file__).parent / 'assets', style_mode=args.style_mode)
@@ -87,6 +93,11 @@ def main():
         args.out.mkdir(parents=True, exist_ok=True)
         (args.out / 'reviewed-candidates.css').write_text(css, encoding='utf-8')
         (args.out / 'css-review.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
+    elif args.command == 'behavior-browser':
+        from .behavior_browser import audit_behavior_browser_files
+        result = audit_behavior_browser_files(args.ir, args.html, args.profile, args.mapping_report, args.out)
+        if not result['passed']:
+            raise SystemExit('BEHAVIOR_BROWSER_AUDIT_FAILED: see output report')
     elif args.command == 'browser-audit':
         from .browser_audit import audit_browser_page
         result = audit_browser_page(args.html, args.out)
